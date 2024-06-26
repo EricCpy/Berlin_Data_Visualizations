@@ -1,0 +1,15 @@
+---
+title: "Report"
+author: "Eric Jonas, Pavlo Kravets, Simon Schäfer, Florian Tilliet"
+date: "`r Sys.Date()`"
+output: 
+  bookdown::gitbook:
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+source("code/setup.R")
+```
+

@@ -1,15 +1,34 @@
 ---
-title: "Report"
+title: "Berlin Airbnb Analysis"
 author: "Eric Jonas, Pavlo Kravets, Simon Schäfer, Florian Tilliet"
 date: "`r Sys.Date()`"
 output: 
   bookdown::gitbook:
+    css: "custom.css"
     code_folding: hide
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+source("../code/setup.R")
 
-source("code/setup.R")
+full_refit = F
 ```
 
+# Introduction
+https://insideairbnb.com/get-the-data/
+
+```{r templateFigure, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
+
+```
+
+## Data Description
+
+
+## Objectives
+
+1. Number of airbnbs by Bezirk + Overview of the airbnb data(Eric)
+2. Impact of a number of airbnbs on price + Overview (Pavlo)
+3. Impact of additional data on airbnb price + Overview for additional data (Simon)
+4. Sentiment analysis of titles, regress to price, bezirk (Eric)
+5. Wordcloud of names (Eric)

@@ -47,3 +47,9 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+# Rmd auto generated
+documents/*.html
+documents/report_cache
+documents/report_files
+documents/libs

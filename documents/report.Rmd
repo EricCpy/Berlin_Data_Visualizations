@@ -1,15 +1,29 @@
 ---
-title: "Report"
+title: "Berlin Airbnb Analysis"
 author: "Eric Jonas, Pavlo Kravets, Simon Schäfer, Florian Tilliet"
 date: "`r Sys.Date()`"
 output: 
   bookdown::gitbook:
+    css: "custom.css"
     code_folding: hide
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+source("../code/setup.R")
 
-source("code/setup.R")
+full_refit = F
 ```
+
+# Introduction
+https://insideairbnb.com/get-the-data/
+
+```{r templateFigure, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
+
+```
+
+## Data Description
+
+
+## Objectives
 

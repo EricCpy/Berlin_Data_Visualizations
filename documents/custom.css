@@ -1,0 +1,9 @@
+div.figure>p.caption {
+    text-align: center !important;
+    font-style: italic;
+}
+
+/* remove summarytools citation */
+div.st-container>p {
+    display: none;
+}

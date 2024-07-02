@@ -2,13 +2,14 @@ source("code/setup.R")
 
 elect_units <- sf::st_read(dsn = "data/Wahlbezirke") %>% 
   st_make_valid(tol = 0.00001) %>% st_transform(4326) %>% 
-  mutate(BEZNAME = str_replace_all(BEZNAME, "\xf6", "ö"))
+  mutate(
+    BEZNAME = str_replace_all(BEZNAME, "\xf6", "ö"),
+    BWB = str_c(str_sub(BWB, 1, 2), "B", str_sub(BWB, 3, 4))
+    )
 table(st_is_valid(elect_units))
 crs <- st_crs(elect_units)
 
-# opnv <- sf::st_read(dsn = "data/opnv/") %>% 
-#   st_make_valid(tol = 0.00001) %>% st_transform(4326)
-# table(st_is_valid(opnv))
+zweitstimme <- read_csv2("data/Wahlergebnisse Berlin 2016/Berlin_AH16_W2.csv", col_types = "c")
 
 bezirke_name_id <- tribble(
   ~BEZ_NAME, ~BEZ_ID,
@@ -57,7 +58,68 @@ points <- airbnb[, c("longitude", "latitude")] |>
 airbnb_with_elect_units <- st_intersection(
   elect_units %>% st_transform(9311),
   points %>% st_transform(9311)
-  )
+  ) %>% st_transform(4326) %>% 
+  bind_cols(airbnb)
+
+lor_uwb_intersection <- st_intersection(
+  elect_units %>% st_transform(9311),
+  lor %>% st_transform(9311)
+)
+
+ggplot() + 
+  geom_sf(
+    data = elect_units %>% filter(BEZ=="05") %>% head(20),
+    mapping = aes(geometry = geometry, fill = BWB)
+  ) +
+  geom_sf(
+    data = lor %>% filter(BEZ_ID=="05") %>% head(20),
+    mapping = aes(geometry = geometry),
+    fill = "#FFFFFF00",
+    color = "red"
+  ) +
+  theme_bw()
+
+lor %>% head(20) %>% 
+  ggplot() + 
+  geom_sf(
+    mapping = aes(geometry = geometry, fill = PLR_ID)
+  ) +
+  theme_bw()
+
+lor_uwb_intersection %>% head(20) %>% 
+  ggplot() + 
+  geom_sf(
+    mapping = aes(geometry = geometry, fill = PLR_ID)
+  ) +
+  theme_bw()
+
+lor_bwb_intersection <- st_intersection(
+  aggregate(elect_units, list(BWB=elect_units$BWB), FUN=function(x) 1) %>% st_transform(9311),
+  lor %>% st_transform(9311)
+)
+
+lor_bwb_intersection %>% head(20) %>% 
+  ggplot() + 
+  geom_sf(
+    mapping = aes(geometry = geometry, fill = BWB)
+  ) +
+  theme_bw()
+
+elect_units %>% filter(str_starts(BWB, "08B7")) %>% 
+  head(20) %>% 
+  ggplot() + 
+  geom_sf(
+    mapping = aes(geometry = geometry, fill = BWB)
+  ) +
+  theme_bw()
+
+aggregate(elect_units, list(BWB=elect_units$BWB), FUN=function(x) 1) %>% 
+  head(5) %>% 
+  ggplot() + 
+  geom_sf(
+    mapping = aes(geometry = geometry, fill = BWB)
+  ) +
+  theme_bw()
 
 # plot(st_combine(elect_units))
 # plot(st_combine(opnv))
@@ -73,8 +135,6 @@ elect_units %>%
     size = 1,
     color = "black",
     alpha = .3) +
-  # geom_sf(
-  #   data = opnv, mapping = aes(geometry = geometry), color = "red") +
   theme_bw()
 
 lor %>% 
@@ -103,3 +163,28 @@ lor %>%
 # 
 # OpenStreetMap::autoplot.OpenStreetMap(sa_map2) + 
 #   xlab("Longitude (°E)") + ylab("Latitude (°N)")
+
+library(ows4R)
+library(httr)
+
+opnv_api <- "https://fbinter.stadt-berlin.de/fb/wfs/data/senstadt/s_sbu_oepnv_l?REQUEST=GetCapabilities&SERVICE=wfs"
+bwk_client <- WFSClient$new(opnv_api, 
+                            serviceVersion = "2.0.0")
+bwk_client$getFeatureTypes(pretty = TRUE)
+
+bwk_client$
+  getCapabilities()$
+  findFeatureTypeByName("fis:s_sbu_oepnv_l")$
+  getDescription() %>%
+  map_chr(function(x){x$getName()})
+
+url <- parse_url("https://fbinter.stadt-berlin.de/fb/wfs/data/senstadt/s_sbu_oepnv_l")
+url$query <- list(
+  service = "WFS",
+  #version = "2.0.0", # optional
+  request = "GetFeature"
+  #bbox = "142600,153800,146000,156900"
+)
+request <- build_url(url)
+
+trains <- read_sf(request)

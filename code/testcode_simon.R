@@ -43,23 +43,21 @@ lor <- sf::st_read(dsn = "data/lor/Planung") %>%
     ) %>% 
   left_join(bezirke_name_id, by = c("BEZ_ID" = "BEZ_ID"))
 
+bezirke_geometry <- lor %>% aggregate(list(BEZ_NAME=lor$BEZ_NAME), FUN=function(x) 1)
+
 airbnb <- rio::import("data/airbnb/March_2024/listings.csv") %>% 
   as_tibble()
 
 # p <- st_sfc(st_point(c(13.4181, 52.53471)), crs = 4326) %>%
 #   st_transform(9311)
 
+#### displaying all airbnbs ####
+
 points <- airbnb[, c("longitude", "latitude")] |> 
   as.matrix() |> 
   st_multipoint() |> 
   st_sfc(crs = 4326) |> 
   st_cast('POINT') 
-
-airbnb_with_elect_units <- st_intersection(
-  elect_units %>% st_transform(9311),
-  points %>% st_transform(9311)
-  ) %>% st_transform(4326) %>% 
-  bind_cols(airbnb)
 
 # plot(st_combine(elect_units))
 # plot(st_combine(opnv))
@@ -92,7 +90,97 @@ lor %>%
   #   data = opnv, mapping = aes(geometry = geometry), color = "red") +
   theme_bw()
 
-#### Match LOR and WB ####
+#### visualize price of airbnb ####
+
+airbnb_with_elect_units <- st_intersection(
+  elect_units %>% st_transform(9311),
+  points %>% st_transform(9311)
+) %>% st_transform(4326) %>% 
+  bind_cols(airbnb)
+
+airbnb_bezirk <- airbnb_with_elect_units %>% as_tibble() %>% group_by(BEZ, BEZNAME) %>% 
+  summarise(median = median(price, na.rm = TRUE), MAD = mad(price, na.rm = TRUE), count = n()) 
+
+bezirke_geometry %>% left_join(
+  airbnb_bezirk, by = c("BEZ_NAME" = "BEZNAME")
+) %>% 
+  ggplot() +
+  geom_sf(
+    mapping = aes(geometry = geometry, fill = median)
+  ) +
+  geom_sf(
+    data = points,
+    aes(geometry = geometry),
+    size = 1,
+    color = "black",
+    alpha = .3)
+
+airbnb_ubw <- airbnb_with_elect_units %>% as_tibble() %>% group_by(UWB) %>% 
+  summarise(median = median(price, na.rm = TRUE), MAD = mad(price, na.rm = TRUE), count = n()) 
+
+elect_units %>% left_join(
+  airbnb_ubw, by = c("UWB" = "UWB")
+) %>% 
+  ggplot() +
+  geom_sf(
+    mapping = aes(geometry = geometry, fill = median)
+  )
+
+airbnb_with_lor_units <- st_intersection(
+  lor %>% st_transform(9311),
+  points %>% st_transform(9311)
+) %>% st_transform(4326) %>% 
+  bind_cols(airbnb)
+
+airbnb_lor <- airbnb_with_lor_units %>% as_tibble() %>% group_by(PLR_ID, PLR_NAME) %>% 
+  summarise(median = median(price, na.rm = TRUE), MAD = mad(price, na.rm = TRUE), count = n()) 
+
+lor %>% left_join(
+  airbnb_lor, by = c("PLR_ID" = "PLR_ID")
+) %>% 
+  ggplot() +
+  geom_sf(
+    mapping = aes(geometry = geometry, fill = median)
+  )
+
+lor %>% left_join(
+  airbnb_lor, by = c("PLR_ID" = "PLR_ID")
+) %>% 
+  ggplot() +
+  geom_sf(
+    mapping = aes(geometry = geometry, fill = MAD)
+  )
+
+lor %>% left_join(
+  airbnb_lor, by = c("PLR_ID" = "PLR_ID")
+) %>% 
+  ggplot() +
+  geom_sf(
+    mapping = aes(geometry = geometry, fill = count)
+  )
+
+airbnb_lor_bzr <- airbnb_with_lor_units %>% as_tibble() %>% group_by(BZR_ID) %>% 
+  summarise(median = median(price, na.rm = TRUE), MAD = mad(price, na.rm = TRUE), count = n()) 
+
+aggregate(lor, list(BZR_ID=lor$BZR_ID), FUN=function(x) 1) %>% 
+  left_join(
+    airbnb_lor_bzr, by = c("BZR_ID" = "BZR_ID")
+  ) %>% 
+  ggplot() +
+  geom_sf(
+    mapping = aes(geometry = geometry, fill = median)
+  )
+
+aggregate(lor, list(BZR_ID=lor$BZR_ID), FUN=function(x) 1) %>% 
+  left_join(
+    airbnb_lor_bzr, by = c("BZR_ID" = "BZR_ID")
+  ) %>% 
+  ggplot() +
+  geom_sf(
+    mapping = aes(geometry = geometry, fill = count)
+  )
+
+#### Match LOR and WB ######## Match LOR and Wcount_fields()B ####
 
 # can't be mapped properly because they cut each others areas
 ggplot() + 

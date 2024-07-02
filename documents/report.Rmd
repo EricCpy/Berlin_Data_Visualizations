@@ -36,3 +36,12 @@ Examining the factors influencing Airbnb characteristics, such as prices, is par
 3. Impact of additional data on airbnb price + Overview for additional data (Simon)
 4. Sentiment analysis of titles, regress to price, bezirk (Eric)
 5. Wordcloud of names (Eric)
+
+# Appendix
+
+## Sources for inspiration
+
+* [Scientific article on Berlin rents](https://link.springer.com/article/10.1007/s11943-024-00340-6): will we find similar effects for AirBNB rents?
+* [Berlin Rents kaggle report](https://www.kaggle.com/code/gurjeet123/berlin-rent-insights): Are animals a price factor for AirBNB?
+* [AirBNB repot on tableau](https://public.tableau.com/app/profile/ritik.mishra/viz/DataAnalysisofRentalPricesinBerlin/AirBnBBerlin?publish=yes): I think we can do better
+* [AirBNB Berlin automated report for our base data set](https://insideairbnb.com/berlin/)

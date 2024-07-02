@@ -61,66 +61,6 @@ airbnb_with_elect_units <- st_intersection(
   ) %>% st_transform(4326) %>% 
   bind_cols(airbnb)
 
-lor_uwb_intersection <- st_intersection(
-  elect_units %>% st_transform(9311),
-  lor %>% st_transform(9311)
-)
-
-ggplot() + 
-  geom_sf(
-    data = elect_units %>% filter(BEZ=="05") %>% head(20),
-    mapping = aes(geometry = geometry, fill = BWB)
-  ) +
-  geom_sf(
-    data = lor %>% filter(BEZ_ID=="05") %>% head(20),
-    mapping = aes(geometry = geometry),
-    fill = "#FFFFFF00",
-    color = "red"
-  ) +
-  theme_bw()
-
-lor %>% head(20) %>% 
-  ggplot() + 
-  geom_sf(
-    mapping = aes(geometry = geometry, fill = PLR_ID)
-  ) +
-  theme_bw()
-
-lor_uwb_intersection %>% head(20) %>% 
-  ggplot() + 
-  geom_sf(
-    mapping = aes(geometry = geometry, fill = PLR_ID)
-  ) +
-  theme_bw()
-
-lor_bwb_intersection <- st_intersection(
-  aggregate(elect_units, list(BWB=elect_units$BWB), FUN=function(x) 1) %>% st_transform(9311),
-  lor %>% st_transform(9311)
-)
-
-lor_bwb_intersection %>% head(20) %>% 
-  ggplot() + 
-  geom_sf(
-    mapping = aes(geometry = geometry, fill = BWB)
-  ) +
-  theme_bw()
-
-elect_units %>% filter(str_starts(BWB, "08B7")) %>% 
-  head(20) %>% 
-  ggplot() + 
-  geom_sf(
-    mapping = aes(geometry = geometry, fill = BWB)
-  ) +
-  theme_bw()
-
-aggregate(elect_units, list(BWB=elect_units$BWB), FUN=function(x) 1) %>% 
-  head(5) %>% 
-  ggplot() + 
-  geom_sf(
-    mapping = aes(geometry = geometry, fill = BWB)
-  ) +
-  theme_bw()
-
 # plot(st_combine(elect_units))
 # plot(st_combine(opnv))
 
@@ -152,6 +92,72 @@ lor %>%
   #   data = opnv, mapping = aes(geometry = geometry), color = "red") +
   theme_bw()
 
+#### Match LOR and WB ####
+
+# can't be mapped properly because they cut each others areas
+ggplot() + 
+  geom_sf(
+    data = elect_units %>% filter(BEZ=="05") %>% head(20),
+    mapping = aes(geometry = geometry, fill = BWB)
+  ) +
+  geom_sf(
+    data = lor %>% filter(BEZ_ID=="05") %>% head(20),
+    mapping = aes(geometry = geometry),
+    fill = "#FFFFFF00",
+    color = "red"
+  ) +
+  theme_bw()
+# 
+# lor_uwb_intersection <- st_intersection(
+#   elect_units %>% filter(BEZ=="05") %>% st_transform(9311),
+#   lor %>% filter(BEZ_ID=="05") %>% st_transform(9311)
+# ) %>% st_transform(4326)
+# 
+# lor %>% filter(BEZ_ID=="05") %>% head(20) %>% 
+#   ggplot() + 
+#   geom_sf(
+#     mapping = aes(geometry = geometry, fill = PLR_ID)
+#   ) +
+#   theme_bw()
+# 
+# lor_uwb_intersection %>% head(80) %>% 
+#   ggplot() + 
+#   geom_sf(
+#     mapping = aes(geometry = geometry, fill = PLR_ID)
+#   ) +
+#   theme_bw()
+# 
+# lor_bwb_intersection <- st_intersection(
+#   aggregate(elect_units, list(BWB=elect_units$BWB), FUN=function(x) 1) %>% st_transform(9311),
+#   lor %>% st_transform(9311)
+# ) %>% st_transform(4326)
+# 
+# lor_bwb_intersection %>% filter(BEZ_ID=="05") %>% head(40) %>% 
+#   ggplot() + 
+#   geom_sf(
+#     mapping = aes(geometry = geometry, fill = BWB)
+#   ) +
+#   theme_bw()
+
+#### Aggregation UWB into BWB works ####
+
+elect_units %>% 
+  filter(BEZ=="05") %>% 
+  head(160) %>% 
+  ggplot() + 
+  geom_sf(
+    mapping = aes(geometry = geometry, fill = BWB)
+  ) +
+  theme_bw()
+
+aggregate(elect_units %>% filter(BEZ=="05"), list(BWB=elect_units %>% filter(BEZ=="05") %>% pull(BWB)), FUN=function(x) 1) %>% 
+  head(40) %>% 
+  ggplot() + 
+  geom_sf(
+    mapping = aes(geometry = geometry, fill = BWB)
+  ) +
+  theme_bw()
+
 #### open maps and ggplot ####
 # library(OpenStreetMap)
 # 
@@ -163,6 +169,8 @@ lor %>%
 # 
 # OpenStreetMap::autoplot.OpenStreetMap(sa_map2) + 
 #   xlab("Longitude (°E)") + ylab("Latitude (°N)")
+
+#### OPNV and WFS ####
 
 library(ows4R)
 library(httr)
@@ -187,4 +195,4 @@ url$query <- list(
 )
 request <- build_url(url)
 
-trains <- read_sf(request)
+trains <- read_sf(request) # gives an error; can't be downloaded completly in qgis as well (only net not stations)

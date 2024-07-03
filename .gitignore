@@ -57,3 +57,6 @@ documents/libs
 # Example data on Simons computer
 /TegelExample
 /data/opnv
+
+# python
+.venv

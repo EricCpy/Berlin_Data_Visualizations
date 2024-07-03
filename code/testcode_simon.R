@@ -48,6 +48,75 @@ bezirke_geometry <- lor %>% aggregate(list(BEZ_NAME=lor$BEZ_NAME), FUN=function(
 airbnb <- rio::import("data/airbnb/March_2024/listings.csv") %>% 
   as_tibble()
 
+airbnb_complete <- rio::import("data/airbnb/March_2024/listings_detailed.csv") %>% 
+  as_tibble()
+
+airbnb_regression <- airbnb %>% select(
+  id, host_id, neighbourhood_group, neighbourhood, room_type, price, minimum_nights, number_of_reviews, availability_365, reviews_per_month
+  ) %>% left_join(
+    airbnb_complete %>% select(
+      id, accommodates, bathrooms, bedrooms, beds
+      ), by = c("id" = "id")
+  ) %>% mutate(
+    id = as.factor(id),
+    host_id = as.factor(host_id)
+  ) %>% drop_na()
+
+#### regression ####
+
+airbnb_regression %>% group_by(neighbourhood) %>% summarise(count = n()) %>% arrange(count)
+
+lm1 <- lm(data = airbnb_regression, price ~ accommodates)
+summary(lm1)
+plot(lm1)
+
+lm2 <- lm(data = airbnb_regression, price ~ accommodates + neighbourhood_group)
+
+lm3 <- lm(data = airbnb_regression, price ~ . - id - host_id - neighbourhood)
+summary(lm3)
+
+lm_full <- lm(data = airbnb_regression, price ~ . - id - host_id)
+plot(lm_full)
+
+anova(lm1, lm2, lm3, lm_full)
+
+#### bayesian regression ####
+
+library(brms)
+
+blm1 <- brm(data = airbnb_regression, price ~ accommodates)
+
+blm3 <- brm(data = airbnb_regression, price ~ . - id - host_id - neighbourhood)
+summary(blm3)
+
+loo(blm3, blm1)
+
+blm3_student <- brm(data = airbnb_regression, price ~ . - id - host_id - neighbourhood, family = "student")
+summary(blm3_student)
+
+blm3_skew <- brm(data = airbnb_regression, price ~ . - id - host_id - neighbourhood, family = "skew_normal")
+summary(blm3_skew)
+
+blm3_lognormal <- brm(data = airbnb_regression, price ~ . - id - host_id - neighbourhood, family = "lognormal")
+summary(blm3_lognormal)
+
+conditional_effects(
+  blm3_lognormal,
+  effects = "accommodates",
+  conditions = tribble(
+    ~bedrooms, ~bathrooms,
+    1, 1,
+    1, 4,
+    4, 1,
+    4, 4,
+  ))
+
+plot(airbnb_regression$minimum_nights, airbnb_regression$price)
+plot(airbnb_regression$accommodates, airbnb_regression$price)
+hist(airbnb_regression$price)
+
+loo(blm3, blm3_lognormal, blm3_skew, blm3_student)
+
 # p <- st_sfc(st_point(c(13.4181, 52.53471)), crs = 4326) %>%
 #   st_transform(9311)
 

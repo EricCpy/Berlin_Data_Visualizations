@@ -132,6 +132,60 @@ hist(airbnb_regression$price)
 
 loo(blm3, blm3_lognormal, blm3_skew, blm3_student)
 
+#### extract flat features ####
+
+airbnb_amenities <- airbnb_complete %>% select(id, amenities) %>% mutate(
+  amenities = amenities %>% str_remove_all(., '"|\\[|\\]') %>% str_split(", ")
+) %>% rowwise() %>% mutate(
+  id = as.character(id),
+  kitchen = any(str_detect(amenities, "Kitchen")),
+  dishwasher = any(str_detect(amenities, "Dishwasher")),
+  oven = any(str_detect(amenities, "Oven")),
+  stove = any(str_detect(amenities, "Stove")),
+  microwave = any(str_detect(amenities, "Microwave")),
+  wineglasses = any(str_detect(amenities, "Wine glasses")),
+  freezer = any(str_detect(amenities, "Freezer")),
+  refrigerator = any(str_detect(amenities, "Refrigerator")),
+  washer = any(str_detect(amenities, "Washer")),
+  dryer = any(str_detect(amenities, "Dryer")),
+  wifi = any(str_detect(amenities, "(W|w)ifi")),
+  TV = any(str_detect(amenities, "TV")),
+  workspace = any(str_detect(amenities, "Dedicated workspace")),
+  bathtub =  any(str_detect(amenities, "Bathtub")),
+  boardgames = any(str_detect(amenities, "Board games")),
+  piano = any(str_detect(amenities, "Piano")),
+  sauna = any(str_detect(amenities, "(s|S)auna")),
+  bedlinens = any(str_detect(amenities, "Bed linens")),
+  privateentrance = any(str_detect(amenities, "Private entrance")),
+  pets = any(str_detect(amenities, "Pets allowed")),
+  balcony = any(str_detect(amenities, "(p|P)atio or balcony")),
+  freeparking = any(str_detect(amenities, "Free parking")),
+  smoking = any(str_detect(amenities, "Smoking allowed")),
+  grill = any(str_detect(amenities, "(G|g)rill")),
+  )
+
+amenities_ranking <- do.call(c, airbnb_complete$amenities %>% str_remove_all(., '"|\\[|\\]') %>% str_split(", ")) %>% 
+  table() %>% as_tibble() %>% setNames(c("amenity", "n")) %>% arrange(desc(n))
+
+amenities_ranking %>% filter(str_detect(amenity, "(w|W)ifi")) %>% mutate(
+  WifiSpeed = as.numeric(str_split_i(amenity, " ", -2))
+) %>% drop_na() %>% pull(n) %>% sum()
+
+amenities_ranking %>% filter(str_detect(amenity, "HDTV")) %>% pull(n)
+
+airbnb_regression_amenities <-  airbnb_amenities %>% select(-amenities) %>% right_join(airbnb_regression)
+
+lm(
+  data = airbnb_regression_amenities,
+  formula = price ~ . - id - host_id - neighbourhood
+  ) %>% summary()
+
+blm3_lognormal_amenities <- brm(
+  data = airbnb_regression_amenities, price ~ . - id - host_id - neighbourhood, family = "lognormal",
+  file = "models/blm3_lognormal_amenities"
+)
+summary(blm3_lognormal)
+
 # p <- st_sfc(st_point(c(13.4181, 52.53471)), crs = 4326) %>%
 #   st_transform(9311)
 

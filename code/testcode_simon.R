@@ -84,20 +84,35 @@ anova(lm1, lm2, lm3, lm_full)
 
 library(brms)
 
-blm1 <- brm(data = airbnb_regression, price ~ accommodates)
+blm1 <- brm(
+  data = airbnb_regression, price ~ accommodates,
+  file = "models/blm1"
+  )
 
-blm3 <- brm(data = airbnb_regression, price ~ . - id - host_id - neighbourhood)
+blm3 <- brm(
+  data = airbnb_regression, price ~ . - id - host_id - neighbourhood,
+  file = "models/blm3"
+  )
 summary(blm3)
 
 loo(blm3, blm1)
 
-blm3_student <- brm(data = airbnb_regression, price ~ . - id - host_id - neighbourhood, family = "student")
+blm3_student <- brm(
+  data = airbnb_regression, price ~ . - id - host_id - neighbourhood, family = "student",
+  file = "models/blm3_student"
+  )
 summary(blm3_student)
 
-blm3_skew <- brm(data = airbnb_regression, price ~ . - id - host_id - neighbourhood, family = "skew_normal")
+blm3_skew <- brm(
+  data = airbnb_regression, price ~ . - id - host_id - neighbourhood, family = "skew_normal",
+  file = "models/blm3_skew"
+  )
 summary(blm3_skew)
 
-blm3_lognormal <- brm(data = airbnb_regression, price ~ . - id - host_id - neighbourhood, family = "lognormal")
+blm3_lognormal <- brm(
+  data = airbnb_regression, price ~ . - id - host_id - neighbourhood, family = "lognormal",
+  file = "models/blm3_lognormal"
+  )
 summary(blm3_lognormal)
 
 conditional_effects(

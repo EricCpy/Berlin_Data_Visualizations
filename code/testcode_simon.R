@@ -180,11 +180,18 @@ lm(
   formula = price ~ . - id - host_id - neighbourhood
   ) %>% summary()
 
+lm(
+  data = airbnb_regression_amenities,
+  formula = log(price) ~ . - id - host_id - neighbourhood
+) %>% summary()
+
 blm3_lognormal_amenities <- brm(
   data = airbnb_regression_amenities, price ~ . - id - host_id - neighbourhood, family = "lognormal",
   file = "models/blm3_lognormal_amenities"
 )
-summary(blm3_lognormal)
+summary(blm3_lognormal_amenities)
+
+loo(blm3_lognormal, blm3_lognormal_amenities)
 
 # p <- st_sfc(st_point(c(13.4181, 52.53471)), crs = 4326) %>%
 #   st_transform(9311)
@@ -226,6 +233,26 @@ lor %>%
     alpha = .3) +
   # geom_sf(
   #   data = opnv, mapping = aes(geometry = geometry), color = "red") +
+  theme_bw()
+
+#### displaying opnv ####
+
+opnv_rails <- sf::st_read(dsn = "data/OPNV/Strecken/") %>% 
+  st_make_valid(tol = 0.00001) %>% st_transform(4326)
+opnv_stations <- sf::st_read(dsn = "data/OPNV/Stationen/") %>% 
+  st_make_valid(tol = 0.00001) %>% st_transform(4326)
+
+bezirke_geometry %>% 
+  ggplot() + 
+  geom_sf(
+    mapping = aes(geometry = geometry, fill = BEZ_NAME)
+  ) +
+  geom_sf(
+    data = opnv_rails, mapping = aes(geometry = geometry), color = "red") +
+  geom_sf(
+    data = opnv_stations, mapping = aes(geometry = geometry), color = "green"
+  ) +
+  coord_sf(xlim = c(13, 13.8), ylim = c(52.3, 52.7), expand = FALSE) +
   theme_bw()
 
 #### visualize price of airbnb ####

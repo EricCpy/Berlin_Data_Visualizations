@@ -248,12 +248,14 @@ bezirke_geometry %>%
     mapping = aes(geometry = geometry, fill = BEZ_NAME)
   ) +
   geom_sf(
-    data = opnv_rails, mapping = aes(geometry = geometry), color = "red") +
+    data = opnv_rails, mapping = aes(geometry = geometry, color = Bahn_Typ_k)) +
   geom_sf(
-    data = opnv_stations, mapping = aes(geometry = geometry), color = "green"
+    data = opnv_stations, mapping = aes(geometry = geometry, color = Bahn_Typ_k)
   ) +
   coord_sf(xlim = c(13, 13.8), ylim = c(52.3, 52.7), expand = FALSE) +
   theme_bw()
+
+
 
 #### visualize price of airbnb ####
 
@@ -449,3 +451,73 @@ url$query <- list(
 request <- build_url(url)
 
 trains <- read_sf(request) # gives an error; can't be downloaded completly in qgis as well (only net not stations)
+
+
+#### sentiment reviews ####
+
+airbnb_reviews <- rio::import("data/airbnb/March_2024/reviews.csv")
+airbnb_reviews_2024 <- airbnb_reviews %>% filter(date > as.Date("2024-01-01"))
+
+airbnb_reviews_2024 <- airbnb_reviews_2024 %>% mutate(language = cld3::detect_language(comments))
+airbnb_reviews_2024 %>% group_by(language) %>% summarise(count = n()) %>% arrange(desc(count))
+airbnb_reviews_2024_main_languages <- airbnb_reviews_2024 %>% filter(language %in% c("en", "de", "fr", "es"))
+
+airbnb_reviews_lang_detection <- airbnb_reviews %>% mutate(language = cld3::detect_language(comments))
+airbnb_reviews_lang_detection %>% group_by(language) %>% summarise(count = n()) %>% arrange(desc(count))
+
+# airbnb_reviews_2024_main_languages %>% head() %>% mutate(
+#   english_comment = polyglotr::google_translate(comment, target_language = "en", source_language = language)
+#   )
+
+comments_fr_to_de <- polyglotr::google_translate(
+  airbnb_reviews_2024_main_languages %>% filter(language == "fr") %>% pull(comments), 
+  target_language = "de", source_language = "fr"
+  )
+data.frame(text = comments_fr_to_de %>% unlist(), source_language = "fr", target_language = "de") %>% head(n = 10) %>% rio::export("data/airbnb/March_2024/review_comments_fr_2024.csv")
+
+airbnb_reviews_2024_fr_to_de <- airbnb_reviews_2024_main_languages %>% filter(language == "fr") %>% bind_cols(unlist(comments_fr_to_de))
+comments_en_to_de <- polyglotr::google_translate(
+  airbnb_reviews_2024_main_languages %>% filter(language == "fr") %>% pull(comments), 
+  target_language = "de", source_language = "en"
+)
+comments_es_to_de <- polyglotr::google_translate(
+  airbnb_reviews_2024_main_languages %>% filter(language == "fr") %>% pull(comments), 
+  target_language = "de", source_language = "es"
+)
+
+
+airbnb_reviews_2024_en <- airbnb_reviews_2024 %>% filter(language %in% c("en"))
+airbnb_reviews_2024_de <- airbnb_reviews_2024 %>% filter(language %in% c("de"))
+temp <- airbnb_reviews_lang_detection %>% filter(language %in% c("de"))
+rio::export(temp, "data/airbnb/March_2024/reviews_de.csv")
+
+# library(reticulate)
+# py_run_file("python_code/sentiment.py")
+# # virtualenv_create("nlp_airbnb")
+# virtualenv_install("nlp_airbnb", "germansentiment")
+# use_virtualenv("nlp_airbnb")
+# 
+# germansentiment <- import("germansentiment")
+# model <- germansentiment$SentimentModel()
+# model$predict_sentiment(temp$comments, output_probabilities = TRUE)
+
+airbnb_sentiments_de_2024 <- airbnb_reviews_2024_de %>% left_join(
+  rio::import("data/airbnb/March_2024/sentiments_de_2024.csv"),
+  by = c("id" = "id")
+)
+airbnb_sentiments_de <- airbnb_reviews_2024_de %>% left_join(
+  rio::import("data/airbnb/March_2024/sentiments_de.csv"),
+  by = c("id" = "id")
+)
+
+airbnb_with_sentiments_de_2024 <- airbnb_sentiments_de_2024 %>% drop_na() %>% 
+  mutate(listing_id = as.character(listing_id), sentiment_score = positive_sentiment - negative_sentiment) %>% 
+  group_by(listing_id) %>% summarise(mean_sentiment_score = mean(sentiment_score), count = n()) %>% 
+  arrange(desc(count), desc(mean_sentiment_score)) %>% 
+  left_join(airbnb_regression, by = c("listing_id" = "id")) 
+lm(data = airbnb_with_sentiments_de_2024, formula = log(price) ~ mean_sentiment_score) %>% summary()
+airbnb_with_sentiments_de_2024 %>% ggplot() +
+  geom_point(aes(x = mean_sentiment_score, y = price))
+
+# todo:
+# - translate to common language? GoogleAPI translation faster than HuggingFace translation but still not as fast as needed to handle whole dataset - translations seem to be identical

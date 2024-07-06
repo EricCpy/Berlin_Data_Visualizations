@@ -48,6 +48,151 @@ bezirke_geometry <- lor %>% aggregate(list(BEZ_NAME=lor$BEZ_NAME), FUN=function(
 airbnb <- rio::import("data/airbnb/March_2024/listings.csv") %>% 
   as_tibble()
 
+airbnb_complete <- rio::import("data/airbnb/March_2024/listings_detailed.csv") %>% 
+  as_tibble()
+
+airbnb_regression <- airbnb %>% select(
+  id, host_id, neighbourhood_group, neighbourhood, room_type, price, minimum_nights, number_of_reviews, availability_365, reviews_per_month
+  ) %>% left_join(
+    airbnb_complete %>% select(
+      id, accommodates, bathrooms, bedrooms, beds
+      ), by = c("id" = "id")
+  ) %>% mutate(
+    id = as.factor(id),
+    host_id = as.factor(host_id)
+  ) %>% drop_na()
+
+#### regression ####
+
+airbnb_regression %>% group_by(neighbourhood) %>% summarise(count = n()) %>% arrange(count)
+
+lm1 <- lm(data = airbnb_regression, price ~ accommodates)
+summary(lm1)
+plot(lm1)
+
+lm2 <- lm(data = airbnb_regression, price ~ accommodates + neighbourhood_group)
+
+lm3 <- lm(data = airbnb_regression, price ~ . - id - host_id - neighbourhood)
+summary(lm3)
+
+lm_full <- lm(data = airbnb_regression, price ~ . - id - host_id)
+plot(lm_full)
+
+anova(lm1, lm2, lm3, lm_full)
+
+#### bayesian regression ####
+
+library(brms)
+
+blm1 <- brm(
+  data = airbnb_regression, price ~ accommodates,
+  file = "models/blm1"
+  )
+
+blm3 <- brm(
+  data = airbnb_regression, price ~ . - id - host_id - neighbourhood,
+  file = "models/blm3"
+  )
+summary(blm3)
+
+loo(blm3, blm1)
+
+blm3_student <- brm(
+  data = airbnb_regression, price ~ . - id - host_id - neighbourhood, family = "student",
+  file = "models/blm3_student"
+  )
+summary(blm3_student)
+
+blm3_skew <- brm(
+  data = airbnb_regression, price ~ . - id - host_id - neighbourhood, family = "skew_normal",
+  file = "models/blm3_skew"
+  )
+summary(blm3_skew)
+
+blm3_lognormal <- brm(
+  data = airbnb_regression, price ~ . - id - host_id - neighbourhood, family = "lognormal",
+  file = "models/blm3_lognormal"
+  )
+summary(blm3_lognormal)
+
+conditional_effects(
+  blm3_lognormal,
+  effects = "accommodates",
+  conditions = tribble(
+    ~bedrooms, ~bathrooms,
+    1, 1,
+    1, 4,
+    4, 1,
+    4, 4,
+  ))
+
+plot(airbnb_regression$minimum_nights, airbnb_regression$price)
+plot(airbnb_regression$accommodates, airbnb_regression$price)
+hist(airbnb_regression$price)
+
+loo(blm3, blm3_lognormal, blm3_skew, blm3_student)
+
+#### extract flat features ####
+
+airbnb_amenities <- airbnb_complete %>% select(id, amenities) %>% mutate(
+  amenities = amenities %>% str_remove_all(., '"|\\[|\\]') %>% str_split(", ")
+) %>% rowwise() %>% mutate(
+  id = as.character(id),
+  kitchen = any(str_detect(amenities, "Kitchen")),
+  dishwasher = any(str_detect(amenities, "Dishwasher")),
+  oven = any(str_detect(amenities, "Oven")),
+  stove = any(str_detect(amenities, "Stove")),
+  microwave = any(str_detect(amenities, "Microwave")),
+  wineglasses = any(str_detect(amenities, "Wine glasses")),
+  freezer = any(str_detect(amenities, "Freezer")),
+  refrigerator = any(str_detect(amenities, "Refrigerator")),
+  washer = any(str_detect(amenities, "Washer")),
+  dryer = any(str_detect(amenities, "Dryer")),
+  wifi = any(str_detect(amenities, "(W|w)ifi")),
+  TV = any(str_detect(amenities, "TV")),
+  workspace = any(str_detect(amenities, "Dedicated workspace")),
+  bathtub =  any(str_detect(amenities, "Bathtub")),
+  boardgames = any(str_detect(amenities, "Board games")),
+  piano = any(str_detect(amenities, "Piano")),
+  sauna = any(str_detect(amenities, "(s|S)auna")),
+  bedlinens = any(str_detect(amenities, "Bed linens")),
+  privateentrance = any(str_detect(amenities, "Private entrance")),
+  pets = any(str_detect(amenities, "Pets allowed")),
+  balcony = any(str_detect(amenities, "(p|P)atio or balcony")),
+  freeparking = any(str_detect(amenities, "Free parking")),
+  smoking = any(str_detect(amenities, "Smoking allowed")),
+  grill = any(str_detect(amenities, "(G|g)rill")),
+  )
+
+amenities_ranking <- do.call(c, airbnb_complete$amenities %>% str_remove_all(., '"|\\[|\\]') %>% str_split(", ")) %>% 
+  table() %>% as_tibble() %>% setNames(c("amenity", "n")) %>% arrange(desc(n))
+
+amenities_ranking %>% filter(str_detect(amenity, "(w|W)ifi")) %>% mutate(
+  WifiSpeed = as.numeric(str_split_i(amenity, " ", -2))
+) %>% drop_na() %>% pull(n) %>% sum()
+
+amenities_ranking %>% filter(str_detect(amenity, "HDTV")) %>% pull(n)
+
+airbnb_regression_amenities <-  airbnb_amenities %>% select(-amenities) %>% right_join(airbnb_regression)
+
+lm(
+  data = airbnb_regression_amenities,
+  formula = price ~ . - id - host_id - neighbourhood
+  ) %>% summary()
+
+lm(
+  data = airbnb_regression_amenities,
+  formula = log(price) ~ . - id - host_id - neighbourhood
+) %>% summary()
+
+blm3_lognormal_amenities <- brm(
+  data = airbnb_regression_amenities, price ~ . - id - host_id - neighbourhood, family = "lognormal",
+  file = "models/blm3_lognormal_amenities"
+)
+summary(blm3_lognormal_amenities)
+
+loo(blm3_lognormal, blm3_lognormal_amenities)
+
 # p <- st_sfc(st_point(c(13.4181, 52.53471)), crs = 4326) %>%
 #   st_transform(9311)
 
@@ -88,6 +233,26 @@ lor %>%
     alpha = .3) +
   # geom_sf(
   #   data = opnv, mapping = aes(geometry = geometry), color = "red") +
+  theme_bw()
+
+#### displaying opnv ####
+
+opnv_rails <- sf::st_read(dsn = "data/OPNV/Strecken/") %>% 
+  st_make_valid(tol = 0.00001) %>% st_transform(4326)
+opnv_stations <- sf::st_read(dsn = "data/OPNV/Stationen/") %>% 
+  st_make_valid(tol = 0.00001) %>% st_transform(4326)
+
+bezirke_geometry %>% 
+  ggplot() + 
+  geom_sf(
+    mapping = aes(geometry = geometry, fill = BEZ_NAME)
+  ) +
+  geom_sf(
+    data = opnv_rails, mapping = aes(geometry = geometry), color = "red") +
+  geom_sf(
+    data = opnv_stations, mapping = aes(geometry = geometry), color = "green"
+  ) +
+  coord_sf(xlim = c(13, 13.8), ylim = c(52.3, 52.7), expand = FALSE) +
   theme_bw()
 
 #### visualize price of airbnb ####

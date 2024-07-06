@@ -60,3 +60,6 @@ documents/libs
 
 # python
 .venv
+
+# large files > 100Mb
+data/airbnb/March_2024/reviews.csv

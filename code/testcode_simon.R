@@ -564,3 +564,32 @@ summary(lm_wc1)
 lm_base <- lm(log(price) ~ 1, data = airbnb_with_lor_units_with_toilet_dist)
 
 anova(lm_base, lm_region, lm_opnv1, lm_wc1)
+
+#### gigabit internet ####
+
+gigabit_supply <- rio::import("data/Berlin_LOR_Versorgungsdaten_Stand_2402.xlsx", skip = 3)
+
+airbnb_with_lor_units_with_gigabit <- airbnb_with_lor_units %>% left_join(
+  gigabit_supply, by = c("PLR_ID" = "LOR\r\nPlanungsräume\r\nNummer")
+)
+
+lm_gigabit1 <- lm(log(price) ~ `Anteil (%)...6`, data = airbnb_with_lor_units_with_gigabit)
+summary(lm_gigabit1)
+
+anova(lm_base, lm_region, lm_opnv1, lm_wc1, lm_gigabit1)
+
+#### verkehrunfälle ####
+
+traffic_accidents <- rio::import("data/AfSBBB_BE_LOR_Strasse_Strassenverkehrsunfaelle_2020_Datensatz.csv") %>% 
+  mutate(LOR_ab_2021 = str_pad(LOR_ab_2021, 8, "0", side = "left")) %>% group_by(LOR_ab_2021) %>% 
+  summarise(count = n())
+
+airbnb_with_lor_units_with_traffic_accidents <- airbnb_with_lor_units %>% left_join(
+  traffic_accidents, by = c("PLR_ID" = "LOR_ab_2021")
+) %>% mutate(count = if_else(is.na(count), 0, count))
+
+lm_accidents1 <- lm(log(price) ~ count, data = airbnb_with_lor_units_with_traffic_accidents)
+summary(lm_accidents1)
+
+anova(lm_base, lm_region, lm_opnv1, lm_wc1, lm_gigabit1, lm_accidents1)
+anova(lm_base, lm_accidents1, lm_crime1)

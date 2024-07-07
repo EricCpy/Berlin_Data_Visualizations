@@ -474,8 +474,8 @@ comments_fr_to_de <- polyglotr::google_translate(
   target_language = "de", source_language = "fr"
   )
 data.frame(text = comments_fr_to_de %>% unlist(), source_language = "fr", target_language = "de") %>% head(n = 10) %>% rio::export("data/airbnb/March_2024/review_comments_fr_2024.csv")
-
 airbnb_reviews_2024_fr_to_de <- airbnb_reviews_2024_main_languages %>% filter(language == "fr") %>% bind_cols(unlist(comments_fr_to_de))
+
 comments_en_to_de <- polyglotr::google_translate(
   airbnb_reviews_2024_main_languages %>% filter(language == "fr") %>% pull(comments), 
   target_language = "de", source_language = "en"

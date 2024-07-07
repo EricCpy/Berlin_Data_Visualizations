@@ -46,7 +46,10 @@ lor <- sf::st_read(dsn = "data/lor/Planung") %>%
 bezirke_geometry <- lor %>% aggregate(list(BEZ_NAME=lor$BEZ_NAME), FUN=function(x) 1)
 
 airbnb <- rio::import("data/airbnb/March_2024/listings.csv") %>% 
-  as_tibble()
+  as_tibble() %>% mutate(
+    neighbourhood_group = str_replace_all(neighbourhood_group, " ", "") %>% 
+      str_replace(., "Charlottenburg-Wilm.", "Charlottenburg-Wilmersdorf")
+  )
 
 airbnb_complete <- rio::import("data/airbnb/March_2024/listings_detailed.csv") %>% 
   as_tibble()
@@ -494,5 +497,70 @@ airbnb_with_sentiments_de_2024 %>% ggplot() +
 # todo:
 # - translate to common language? GoogleAPI translation faster than HuggingFace translation but still not as fast as needed to handle whole dataset - translations seem to be identical
 
-##### crime rate ####
+#### crime rate ####
 
+crime_rates <- readxl::read_excel("data/Kriminalität Fallzahlen&HZ 2014-2023.xlsx", skip = 4, sheet = "Fallzahlen_2023")
+lor_with_crime <-lor %>% left_join(
+  crime_rates, by = c("PLR_ID" = "LOR-Schlüssel (Bezirksregion)")
+)
+
+# airbnb_regression_with_crime <- airbnb_regression %>% left_join(
+#   crime_rates, by = c("neighbourhood_group" = "Bezeichnung (Bezirksregion)")
+# )
+
+airbnb_with_lor_units_with_crime <- airbnb_with_lor_units %>% left_join(
+  crime_rates, by = c("BZR_ID" = "LOR-Schlüssel (Bezirksregion)")
+)
+
+lm_region <- lm(log(price) ~ neighbourhood_group, data = airbnb_with_lor_units_with_crime)
+# lm_crime1 <- lm(log(price) ~ Kieztaten, data = airbnb_regression_with_crime)
+# lm_crime2 <- lm(log(price) ~ neighbourhood_group + Kieztaten, data = airbnb_regression_with_crime) # double specified crime and bezirk
+
+lm_crime1 <- lm(log(price) ~ `Straftaten \r\n-insgesamt-`, data = airbnb_with_lor_units_with_crime)
+lm_crime2 <- lm(log(price) ~ neighbourhood_group + Kieztaten, data = airbnb_with_lor_units_with_crime)
+lm_crime3 <- lm(
+  log(price) ~ ., 
+  data = airbnb_with_lor_units_with_crime %>% as_tibble() %>% select(price, Raub:Kieztaten)
+  )
+
+summary(lm_region)
+summary(lm_crime1)
+summary(lm_crime2)
+summary(lm_crime3)
+
+anova(lm_region, lm_crime1, lm_crime2, lm_crime3)
+
+#### öpnv station distance ####
+
+airbnb_opnv_distances <- st_distance(opnv_stations, airbnb_with_lor_units)
+
+airbnb_with_lor_units_with_opnv_dist <- airbnb_with_lor_units %>% bind_cols(min_dist_opnv = apply(airbnb_opnv_distances, 2, min))
+
+lm_opnv1 <- lm(log(price) ~ min_dist_opnv, data = airbnb_with_lor_units_with_opnv_dist)
+summary(lm_opnv1)
+
+anova(lm_region, lm_opnv1)
+
+#### public toilets distance ####
+
+toilets <- rio::import("data/berliner-toiletten-standorte.xlsx", skip = 10)
+toilet_coords <- toilets[, c("Längengrad", "Breitengrad")] |> 
+  mutate_all(~str_replace(., ",", ".")) %>% 
+  drop_na() %>%
+  mutate_all(~if_else(str_sub(., 3, 3) == ".", . , str_c(str_sub(., 1, 2), ".", str_sub(., 3, -1)))) %>% 
+  mutate_all(~as.numeric(.)) %>% 
+  as.matrix() |> 
+  st_multipoint() |> 
+  st_sfc(crs = 4326) |> 
+  st_cast('POINT') 
+
+airbnb_toilet_distances <- st_distance(toilet_coords, airbnb_with_lor_units)
+
+airbnb_with_lor_units_with_toilet_dist <- airbnb_with_lor_units %>% bind_cols(min_dist_wc = apply(airbnb_toilet_distances, 2, min))
+
+lm_wc1 <- lm(log(price) ~ min_dist_wc, data = airbnb_with_lor_units_with_toilet_dist)
+summary(lm_wc1)
+
+lm_base <- lm(log(price) ~ 1, data = airbnb_with_lor_units_with_toilet_dist)
+
+anova(lm_base, lm_region, lm_opnv1, lm_wc1)

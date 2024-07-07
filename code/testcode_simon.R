@@ -561,7 +561,7 @@ airbnb_with_lor_units_with_toilet_dist <- airbnb_with_lor_units %>% bind_cols(mi
 lm_wc1 <- lm(log(price) ~ min_dist_wc, data = airbnb_with_lor_units_with_toilet_dist)
 summary(lm_wc1)
 
-lm_base <- lm(log(price) ~ 1, data = airbnb_with_lor_units_with_toilet_dist)
+lm_base <- lm(log(price) ~ 1, data = airbnb)
 
 anova(lm_base, lm_region, lm_opnv1, lm_wc1)
 
@@ -593,3 +593,133 @@ summary(lm_accidents1)
 
 anova(lm_base, lm_region, lm_opnv1, lm_wc1, lm_gigabit1, lm_accidents1)
 anova(lm_base, lm_accidents1, lm_crime1)
+
+#### election results 2016 ####
+
+election_2016_party_vote <- read_csv2("data/Wahlergebnisse Berlin 2016/Berlin_AH16_W2.csv")
+
+election_2016_party_vote_UWB_with_BWB <- election_2016_party_vote %>% filter(Wahlbezirksart == "Urnenwahlbezirk") %>% 
+  mutate(Adresse = str_remove(Adresse, "W")) %>% 
+  left_join(
+  elect_units %>% as.data.frame() %>% select(UWB, BWB),
+  by = c("Adresse" = "UWB")
+)
+
+election_results_summed_for_BWB <- election_2016_party_vote_UWB_with_BWB %>% group_by(BWB) %>% 
+  select_if(is.numeric) %>% select(-Bundestagswahlkreis) %>% 
+  summarise_all(sum) %>% bind_rows(
+    election_2016_party_vote %>% filter(Wahlbezirksart == "Briefwahlbezirk") %>% 
+      rename(BWB = Adresse) %>% group_by(BWB) %>% 
+      select_if(is.numeric) %>% select(-Bundestagswahlkreis) 
+  ) %>% group_by(BWB) %>% summarise_all(sum)
+
+airbnb_with_elect_results <- airbnb_with_elect_units %>% left_join(
+  election_results_summed_for_BWB %>% select(BWB, Wähler, SPD:Gesundheitsforschung) %>%
+    mutate_at(vars(SPD:Gesundheitsforschung), ~./Wähler*100),
+  by = c("BWB" = "BWB")
+)
+
+lm_spd1 <- lm(log(price) ~ SPD, data = airbnb_with_elect_results)
+summary(lm_spd1)
+
+lm_cdu1 <- lm(log(price) ~ CDU, data = airbnb_with_elect_results)
+lm_fdp1 <- lm(log(price) ~ FDP, data = airbnb_with_elect_results)
+lm_grüne1 <- lm(log(price) ~ GRÜNE, data = airbnb_with_elect_results)
+
+anova(lm_base, lm_spd1, lm_cdu1, lm_fdp1, lm_grüne1)
+
+temp <- airbnb_with_elect_results %>% as_tibble() %>% select(SPD:Gesundheitsforschung)
+airbnb_with_elect_majority <- airbnb_with_elect_units %>% 
+  bind_cols(
+    vote_majority = colnames(temp)[apply(temp,1,which.max)],
+    vote_majority2 = colnames(temp)[apply(temp,1,x_highest,2)]
+    )
+
+x_highest <- function(data, x) {
+  order <- kit::topn(data, n = x)
+  return(order[x])
+}
+
+lm_votes1 <- lm(log(price) ~ vote_majority, data = airbnb_with_elect_majority)
+summary(lm_votes1)
+
+lm_votes2 <- lm(log(price) ~ vote_majority + vote_majority2, data = airbnb_with_elect_majority)
+summary(lm_votes2)
+
+lm_votes3 <- lm(log(price) ~ vote_majority*vote_majority2, data = airbnb_with_elect_majority)
+summary(lm_votes3)
+
+anova(lm_base, lm_spd1, lm_cdu1, lm_fdp1, lm_grüne1, lm_votes1, lm_votes2, lm_votes3)
+
+#### rents ####
+
+# rent_data <- sf::st_read(dsn = "data/Mieten/") %>% 
+#   st_make_valid(tol = 0.00001) %>% st_transform(4326)
+# 
+# rent_data_with_elect_units <- st_intersection(
+#   elect_units %>% st_transform(9311),
+#   rent_data %>% st_transform(9311)
+# ) %>% st_transform(4326)
+# 
+# elect_units_with_aggregated_rent_data <- rent_data_with_elect_units %>% mutate(
+#   wol = ordered(wol, levels = c("einfach", "mittel", "gut"))
+# ) %>% 
+#   group_by(UWB) %>% summarise(
+#   wohnlage = mean(as.numeric(wol))
+# )
+# 
+# airbnb_with_rent_data <- airbnb_with_elect_units %>% left_join(
+#   elect_units_with_aggregated_rent_data %>% as_tibble(),
+#   by = c("UWB" = "UWB")
+# )
+# 
+# # airbnb_rent_distances <- st_distance(rent_data, airbnb_with_lor_units) # takes a long time
+# 
+# ##### try with knn #####
+# 
+# knn_df <- rent_data %>% mutate(
+#   long = sf::st_coordinates(.)[,1],
+#   lat = sf::st_coordinates(.)[,2]) %>% 
+#   as_tibble() %>% 
+#   select(wol, long, lat)
+# 
+# model_knn <- class::knn(
+#   train = knn_df[,c("long", "lat")],
+#   test = airbnb[, c("longitude", "latitude")],
+#   cl = knn_df$wol,
+#   k = 3
+#   )
+# 
+# elect_units_with_aggregated_rent_data_median <- rent_data_with_elect_units %>% mutate(
+#   wol = ordered(wol, levels = c("einfach", "mittel", "gut"))
+# ) %>% 
+#   group_by(UWB) %>% summarise(
+#     wohnlage = median(as.numeric(wol))
+#   )
+# 
+# airbnb_with_rent_data_median <- airbnb_with_elect_units %>% left_join(
+#   elect_units_with_aggregated_rent_data_median %>% as_tibble(),
+#   by = c("UWB" = "UWB")
+# )
+# 
+# airbnb_with_rent_data_median_knn <- model_knn %>% as_tibble() %>% mutate(
+#   wol = ordered(value, levels = c("einfach", "mittel", "gut")),
+#   knn_wohnlage = as.numeric(wol),
+#   median_wohnlage = airbnb_with_rent_data_median$wohnlage,
+#   price = airbnb_with_rent_data_median$price,
+#   airbnb_id = airbnb_with_rent_data_median$id
+#   )
+# airbnb_with_rent_data_median_knn %>% select(knn_wohnlage, median_wohnlage) %>% table()
+
+airbnb_with_rent_data_median_knn %>% saveRDS("saved_objects/airbnb_with_rent_data_median_knn.rds")
+airbnb_with_rent_data_median_knn <- readRDS("saved_objects/airbnb_with_rent_data_median_knn.rds")
+
+lm_rents1 <- lm(log(price) ~ wohnlage, data = airbnb_with_rent_data)
+summary(lm_rents1)
+
+anova(lm_base, lm_accidents1, lm_crime1, lm_rents1)
+
+lm_rents2 <- lm(log(price) ~ knn_wohnlage, data = airbnb_with_rent_data_median_knn)
+summary(lm_rents2)
+
+anova(lm_rents1, lm_rents2)

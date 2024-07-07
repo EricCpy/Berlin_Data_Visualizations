@@ -10,7 +10,7 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-source("../code/setup.R")
+source("./code/setup.R")
 
 full_refit = F
 ```

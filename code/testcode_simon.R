@@ -425,34 +425,6 @@ aggregate(elect_units %>% filter(BEZ=="05"), list(BWB=elect_units %>% filter(BEZ
 # OpenStreetMap::autoplot.OpenStreetMap(sa_map2) + 
 #   xlab("Longitude (°E)") + ylab("Latitude (°N)")
 
-#### OPNV and WFS ####
-
-library(ows4R)
-library(httr)
-
-opnv_api <- "https://fbinter.stadt-berlin.de/fb/wfs/data/senstadt/s_sbu_oepnv_l?REQUEST=GetCapabilities&SERVICE=wfs"
-bwk_client <- WFSClient$new(opnv_api, 
-                            serviceVersion = "2.0.0")
-bwk_client$getFeatureTypes(pretty = TRUE)
-
-bwk_client$
-  getCapabilities()$
-  findFeatureTypeByName("fis:s_sbu_oepnv_l")$
-  getDescription() %>%
-  map_chr(function(x){x$getName()})
-
-url <- parse_url("https://fbinter.stadt-berlin.de/fb/wfs/data/senstadt/s_sbu_oepnv_l")
-url$query <- list(
-  service = "WFS",
-  #version = "2.0.0", # optional
-  request = "GetFeature"
-  #bbox = "142600,153800,146000,156900"
-)
-request <- build_url(url)
-
-trains <- read_sf(request) # gives an error; can't be downloaded completly in qgis as well (only net not stations)
-
-
 #### sentiment reviews ####
 
 airbnb_reviews <- rio::import("data/airbnb/March_2024/reviews.csv")
@@ -521,3 +493,6 @@ airbnb_with_sentiments_de_2024 %>% ggplot() +
 
 # todo:
 # - translate to common language? GoogleAPI translation faster than HuggingFace translation but still not as fast as needed to handle whole dataset - translations seem to be identical
+
+##### crime rate ####
+

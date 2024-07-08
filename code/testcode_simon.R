@@ -497,6 +497,35 @@ airbnb_with_sentiments_de_2024 %>% ggplot() +
 # todo:
 # - translate to common language? GoogleAPI translation faster than HuggingFace translation but still not as fast as needed to handle whole dataset - translations seem to be identical
 
+##### 5 results from cluster ######
+
+sentiment_results <- rio::import("data/airbnb/review_sentiments.csv")
+sentiment_results %>% group_by(language) %>% summarise(count = n()) %>% arrange(desc(count))
+airbnb_reviews_with_sentiment <- airbnb_reviews %>% left_join(
+  sentiment_results, by = c("id" = "id", "listing_id" = "listing_id", "date" = "date")
+)
+
+airbnb_with_agregated_sentiment_scores <- airbnb_reviews_with_sentiment %>% # filter(language %in% c("de", "en")) %>% 
+  drop_na() %>% 
+  mutate(listing_id = as.character(listing_id), sentiment_score = positive_sentiment - negative_sentiment) %>% 
+  group_by(listing_id, language) %>% 
+  summarise(mean_sentiment_score = mean(sentiment_score), count = n()) %>% 
+  # arrange(desc(count), desc(mean_sentiment_score)) %>% 
+  left_join(airbnb_regression, by = c("listing_id" = "id")) 
+
+lm(data = airbnb_with_agregated_sentiment_scores %>% filter(language %in% c("de")), formula = log(price) ~ mean_sentiment_score) %>% summary()
+lm(data = airbnb_with_agregated_sentiment_scores %>% filter(language %in% c("de", "en")), formula = log(price) ~ mean_sentiment_score + language) %>% summary()
+lm(data = airbnb_with_agregated_sentiment_scores %>% filter(language %in% c("de", "en")), formula = log(price) ~ mean_sentiment_score:language) %>% summary()
+lm(data = airbnb_with_agregated_sentiment_scores %>% filter(language %in% c("de", "en")), formula = log(price) ~ mean_sentiment_score*language) %>% summary()
+
+lm_sentiment1 <- lm(data = airbnb_with_agregated_sentiment_scores %>% filter(language %in% c("de", "en", "fr", "es", "nl", "it", "ru")), formula = log(price) ~ mean_sentiment_score:language)
+lm_sentiment2 <- lm(data = airbnb_with_agregated_sentiment_scores %>% filter(language %in% c("de", "en", "fr", "es", "nl", "it", "ru")), formula = log(price) ~ mean_sentiment_score*language)
+
+summary(lm_sentiment1)
+summary(lm_sentiment2)
+
+anova(lm_sentiment1, lm_sentiment2)
+
 #### crime rate ####
 
 crime_rates <- readxl::read_excel("data/Kriminalität Fallzahlen&HZ 2014-2023.xlsx", skip = 4, sheet = "Fallzahlen_2023")

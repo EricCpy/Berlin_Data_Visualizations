@@ -3,14 +3,14 @@ source("code/setup.R")
 # Sentiment Analysis
 
 # perhaps use piechart and compare to filtered listings 
-ggplot(df_airbnb_march2024, aes(x = sentiment)) +
+ggplot(df_airbnb_march2024, aes(x = sentiment_for_name)) +
   geom_bar(fill = "skyblue", color = "black") +
   labs(title = "Sentiment Count", x = "Sentiment", y = "Count") +
   theme_minimal()
 
 
-df_melted <- melt(df_airbnb_march2024, id.vars = c('id', 'sentiment'), 
-                  measure.vars = c('positive_sentiment', 'neutral_sentiment', 'negative_sentiment'), 
+df_melted <- melt(df_airbnb_march2024, id.vars = c('id', 'sentiment_for_name'), 
+                  measure.vars = c('positive_sentiment_for_name', 'neutral_sentiment_for_name', 'negative_sentiment_for_name'), 
                   variable.name = 'sentiment_type', value.name = 'percentage')
 
 ggplot(df_melted, aes(x = percentage, fill = sentiment_type)) +
@@ -36,7 +36,7 @@ df_filtered <- df_clean %>%
   filter(price >= ci_low & price <= ci_high)
 
 
-ggplot(df_filtered, aes(x = sentiment, y = price, fill = sentiment)) +
+ggplot(df_filtered, aes(x = sentiment_for_name, y = price, fill = sentiment_for_name)) +
   geom_violin(trim = FALSE) +
   geom_boxplot(width = 0.1, fill = "white") +
   labs(title = "Distribution of prices by sentiment", x = "Sentiment", y = "Price") +

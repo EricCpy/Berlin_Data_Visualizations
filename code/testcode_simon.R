@@ -1,5 +1,7 @@
 source("code/setup.R")
 
+#### Data loading ####
+
 elect_units <- sf::st_read(dsn = "data/Wahlbezirke") %>% 
   st_make_valid(tol = 0.00001) %>% st_transform(4326) %>% 
   mutate(
@@ -752,3 +754,38 @@ lm_rents2 <- lm(log(price) ~ knn_wohnlage, data = airbnb_with_rent_data_median_k
 summary(lm_rents2)
 
 anova(lm_rents1, lm_rents2)
+
+#### Regression Part 2 ####
+
+library(brms)
+
+lm_sentiment_for_name <- lm(data = df_airbnb_march2024, log(price) ~ sentiment_for_name)
+summary(lm_sentiment_for_name)
+
+contrasts(df_airbnb_march2024$sentiment_for_name) = contr.treatment(3)
+lm_sentiment_for_name2 <- lm(data = df_airbnb_march2024, log(price) ~ sentiment_for_name)
+summary(lm_sentiment_for_name2)
+
+df_clean %>% group_by(sentiment_for_name) %>% 
+  summarise(mean_price = mean(price), median_price = median(price))
+
+blm_sentiment_for_name <- brm(
+  data = df_clean, 
+  price ~ sentiment_for_name, 
+  family = "lognormal"
+)
+
+# exp(4.603887)
+# exp(4.603887+0.053228)
+# exp(4.603887+0.053228+0.009651)
+
+blm_sentiment_for_name2 <- brm(
+  data = df_clean, 
+  price ~ mo(sentiment_for_name), 
+  family = "lognormal"
+)
+
+fixef(blm_sentiment_for_name2)
+ranef(blm_sentiment_for_name2)
+brms::
+  conditional_effects(blm_sentiment_for_name2)

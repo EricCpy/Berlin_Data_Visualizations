@@ -786,6 +786,15 @@ blm_sentiment_for_name2 <- brm(
 )
 
 fixef(blm_sentiment_for_name2)
-ranef(blm_sentiment_for_name2)
-brms::
-  conditional_effects(blm_sentiment_for_name2)
+# ranef(blm_sentiment_for_name2)
+
+brms::variables(blm_sentiment_for_name2)
+conditional_effects(blm_sentiment_for_name2)
+
+tidybayes::get_variables(blm_sentiment_for_name2)
+ordered_params <- tidybayes::spread_draws(
+  blm_sentiment_for_name2, 
+  b_Intercept, 
+  bsp_mosentiment_for_name, 
+  simo_mosentiment_for_name1[num]
+  ) %>% pivot_wider(names_from = num, values_from = simo_mosentiment_for_name1)

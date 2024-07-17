@@ -31,11 +31,11 @@ Examining the factors influencing Airbnb characteristics, such as prices, is par
 
 ## Objectives
 
-1. Number of airbnbs by Bezirk + Overview of the airbnb data(Eric)
+1. Number of airbnbs by Bezirk + Overview of the airbnb data (Florian)
 2. Impact of a number of airbnbs on price + Overview (Pavlo)
 3. Impact of additional data on airbnb price + Overview for additional data (Simon)
-4. Sentiment analysis of titles, regress to price, bezirk (Eric)
-5. Wordcloud of names (Eric)
+4. Wordcloud of names and Sentiment analysis of titles of reviews, regress to price, bezirk (Eric)
+5. Compare price to amenities and attributes in sdetailed listings dataset, e.g. analyse amenities in different regions (Simon) 
 
 # Appendix
 

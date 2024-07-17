@@ -759,18 +759,18 @@ anova(lm_rents1, lm_rents2)
 
 library(brms)
 
-lm_sentiment_for_name <- lm(data = df_airbnb_march2024, log(price) ~ sentiment_for_name)
+lm_sentiment_for_name <- lm(data = df_listings, log(price) ~ sentiment_for_name)
 summary(lm_sentiment_for_name)
 
-contrasts(df_airbnb_march2024$sentiment_for_name) = contr.treatment(3)
-lm_sentiment_for_name2 <- lm(data = df_airbnb_march2024, log(price) ~ sentiment_for_name)
+contrasts(df_listings$sentiment_for_name) = contr.treatment(3)
+lm_sentiment_for_name2 <- lm(data = df_listings, log(price) ~ sentiment_for_name)
 summary(lm_sentiment_for_name2)
 
-df_clean %>% group_by(sentiment_for_name) %>% 
+df_listings_cleaned %>% group_by(sentiment_for_name) %>% 
   summarise(mean_price = mean(price), median_price = median(price))
 
 blm_sentiment_for_name <- brm(
-  data = df_clean, 
+  data = df_listings_cleaned, 
   price ~ sentiment_for_name, 
   family = "lognormal"
 )
@@ -780,7 +780,7 @@ blm_sentiment_for_name <- brm(
 # exp(4.603887+0.053228+0.009651)
 
 blm_sentiment_for_name2 <- brm(
-  data = df_clean, 
+  data = df_listings_cleaned, 
   price ~ mo(sentiment_for_name), 
   family = "lognormal"
 )

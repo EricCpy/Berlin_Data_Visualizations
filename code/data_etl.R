@@ -8,7 +8,7 @@ df_title_sentiments <- read.csv("./data/airbnb/March_2024/sentiments.csv") %>%
   mutate(sentiment = ordered(sentiment, levels = c("negative", "neutral", "positive"))) %>% 
   rename_at(vars(-id), ~str_c(., "_for_name"))
 
-df_listings <- inner_join(df_listings, df_sentiments_march2024, by = "id") %>%
+df_listings <- inner_join(df_listings, df_title_sentiments, by = "id") %>%
   as_tibble()  
 
 df_listings_cleaned <- df_listings %>%

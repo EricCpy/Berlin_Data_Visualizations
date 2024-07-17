@@ -45,46 +45,10 @@ ggplot(df_clean, aes(x = sentiment_for_name, y = log(price), fill = sentiment_fo
   theme_minimal()
 
 # same but for airbnb reviews
-
-df_long <- df_review_sentiments %>%
-  pivot_longer(cols = c(negative_sentiment, positive_sentiment, neutral_sentiment),
-               names_to = "sentiment_split",
-               values_to = "value")
-
-df_long <- head(df_long, 5000)
-
-ggplot(df_long, aes(x = sentiment_split, y = value, fill = language)) +
-  geom_bar(stat = "identity", position = "dodge") +
-  labs(title = "Sentiment Distribution by Language", x = "Sentiment", y = "Value") +
-  theme_minimal()
-
-ggplot(df_long, aes(x = sentiment, y = value, fill = language)) +
-  geom_bar(stat = "identity") +
-  labs(title = "Stacked Sentiment Distribution by Language", x = "Sentiment", y = "Value") +
-  theme_minimal()
-
-ggplot(df_long, aes(x = sentiment, y = value, fill = language)) +
-  geom_boxplot() +
-  labs(title = "Boxplot of Sentiments by Language", x = "Sentiment", y = "Value") +
-  theme_minimal()
-
-ggplot(df_long, aes(x = value, fill = sentiment)) +
-  geom_density(alpha = 0.5) +
-  facet_wrap(~ language) +
-  labs(title = "Density Plot of Sentiments by Language", x = "Value", y = "Density") +
-  theme_minimal()
-
-ggplot(df_long, aes(x = time, y = value, color = sentiment)) +
-  geom_line() +
-  facet_wrap(~ language) +
-  labs(title = "Sentiment Over Time by Language", x = "Time", y = "Sentiment Value") +
-  theme_minimal()
-
 # english vs german reviews, are german reviews/expectations lower/higher
 # review sentiment time analysis, normal plots and animated map with slider for year or month selection
 # interactive map price to review sentiment to rating metrics in dataset
 # map reviews in region by price segments
-
 
 # test stuff
 

@@ -45,3 +45,7 @@ Examining the factors influencing Airbnb characteristics, such as prices, is par
 * [Berlin Rents kaggle report](https://www.kaggle.com/code/gurjeet123/berlin-rent-insights): Are animals a price factor for AirBNB?
 * [AirBNB repot on tableau](https://public.tableau.com/app/profile/ritik.mishra/viz/DataAnalysisofRentalPricesinBerlin/AirBnBBerlin?publish=yes): I think we can do better
 * [AirBNB Berlin automated report for our base data set](https://insideairbnb.com/berlin/)
+
+### Inteactive maps
+
+* [With plotly](https://www.analytics-tuts.com/map-with-time-slider-using-plotly-in-r/)

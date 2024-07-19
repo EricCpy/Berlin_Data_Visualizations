@@ -3,3 +3,4 @@ jupyter
 fasttext-langdetect
 swifter
 nltk
+wordcloud

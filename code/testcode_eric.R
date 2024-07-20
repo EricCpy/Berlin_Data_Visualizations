@@ -21,15 +21,15 @@ ggplot(df_melted, aes(x = percentage, fill = sentiment_type)) +
 
 # Sentiment Price Analysis
 
-mean_price <- mean(df_clean$price, na.rm = TRUE)
+mean_price <- mean(df_listings_cleaned$price, na.rm = TRUE)
 mean_price
-sd_price <- sd(df_clean$price, na.rm = TRUE)
+sd_price <- sd(df_listings_cleaned$price, na.rm = TRUE)
 sd_price
 z99 <- qnorm(0.95) # maybe change interval
-ci_low <- mean_price - z99 * sd_price / sqrt(nrow(df_clean))
-ci_high <- mean_price + z99 * sd_price / sqrt(nrow(df_clean))
+ci_low <- mean_price - z99 * sd_price / sqrt(nrow(df_listings_cleaned))
+ci_high <- mean_price + z99 * sd_price / sqrt(nrow(df_listings_cleaned))
 
-df_filtered <- df_clean %>%
+df_filtered <- df_listings_cleaned %>%
   filter(price >= ci_low & price <= ci_high)
 
 ggplot(df_filtered, aes(x = sentiment_for_name, y = price, fill = sentiment_for_name)) +
@@ -38,7 +38,7 @@ ggplot(df_filtered, aes(x = sentiment_for_name, y = price, fill = sentiment_for_
   labs(title = "Distribution of prices by sentiment", x = "Sentiment", y = "Price") +
   theme_minimal()
 
-ggplot(df_clean, aes(x = sentiment_for_name, y = log(price), fill = sentiment_for_name)) +
+ggplot(df_listings_cleaned, aes(x = sentiment_for_name, y = log(price), fill = sentiment_for_name)) +
   geom_violin(trim = FALSE) +
   geom_boxplot(width = 0.1, fill = "white") +
   labs(title = "Distribution of prices by sentiment", x = "Sentiment", y = "Price") +

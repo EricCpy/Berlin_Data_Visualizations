@@ -923,7 +923,75 @@ ordered_params <- tidybayes::spread_draws(
   simo_mosentiment_for_name1[num]
   ) %>% pivot_wider(names_from = num, values_from = simo_mosentiment_for_name1)
 
-#### rethinkng ####
+#### figures ####
+
+df_airbnb %>% ggplot(
+  aes(
+    y = neighbourhood_group_cleansed, 
+    x = price, 
+    fill = neighbourhood_group_cleansed)
+  ) +
+  geom_violin() +
+  geom_boxplot(width = 0.1, fill = "white") +
+  scale_fill_manual(values = bezirk_colors, name = "Bezirk") +
+  ylab("Bezirk") +
+  theme(
+    legend.position = "bottom",
+    legend.title.position = "top"
+  )
+
+#### rethinkng #####
 
 library(rethinking)
 
+##### Simulations #####
+
+###### base model ######
+
+n <- 6306
+mean <- log(100)
+sd <- 0.5
+
+sim_base_model <- tibble(
+  sim_base = rnorm(n, mean, sd),
+  original = df_airbnb$log_price
+)
+
+sim_base_model %>% 
+  pivot_longer(everything()) %>% 
+  ggplot() +
+  geom_density(aes(x = value), fill = "#AACCFF") +
+  facet_wrap(
+    ~name, nrow = 2
+    )
+
+###### Bezirk reputation ######
+
+n_bezirk <- 12
+bezirke <- sample(1:12, n, replace = TRUE)
+b_bezirk_reputation <- rnorm(12, 0, 0.5)
+
+sim_reputation_only_model <- tibble(
+  bezirk = bezirke,
+  original = df_airbnb$log_price
+) %>% mutate(
+  sim_reputation = rnorm(n, mean + b_bezirk_reputation[bezirk], sd)
+)
+
+sim_reputation_only_model %>% 
+  pivot_longer(-bezirk) %>% 
+  ggplot() +
+  geom_density(aes(x = value), fill = "#AACCFF") +
+  facet_wrap(
+    ~name, nrow = 2
+  )
+
+sim_reputation_only_model %>% 
+  select(-original) %>% 
+  ggplot(
+    aes(
+      x = sim_reputation,
+      y = bezirk,
+      fill = factor(bezirk)
+    )) +
+  geom_violin()

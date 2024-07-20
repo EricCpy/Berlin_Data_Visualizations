@@ -10,9 +10,16 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-source("./code/setup.R")
+
+library(tidyverse)
+library(sf)
+library(plotly)
 
 full_refit = F
+```
+
+```{r etl, include=FALSE, cache=TRUE}
+source("code/data_etl.R")
 ```
 
 # Introduction
@@ -81,21 +88,11 @@ plot_ly() %>%
     hoverinfo='skip'
   ) %>% 
   add_sf(
-    data = opnv_rails %>% 
-      filter(Bahn_Typ_k != "T") %>% 
-      st_crop(
-        xmin = 13.08, ymin = 52.32,
-        xmax = 13.75, ymax = 52.69
-      ) %>% st_sf() %>% st_cast(),
+    data = opnv_rails_no_tram_berlin,
     name = 'Rail'
   ) %>% 
   add_sf(
-    data = opnv_stations %>% 
-      filter(Bahn_Typ_k != "T") %>% 
-      st_crop(
-        xmin = 13.08, ymin = 52.32,
-        xmax = 13.75, ymax = 52.69
-      ),
+    data = opnv_stations_no_tram_berlin,
     name = 'Station'
   ) %>% 
   add_markers(

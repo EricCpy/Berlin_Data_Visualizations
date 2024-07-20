@@ -260,7 +260,130 @@ bezirke_geometry %>%
   coord_sf(xlim = c(13, 13.8), ylim = c(52.3, 52.7), expand = FALSE) +
   theme_bw()
 
+#### plotly ####
 
+library(plotly)
+
+
+map_colors_pale <- c(
+  "#8dd3c7",
+  "#ffffb3",
+  "#bebada",
+  "#fb8072",
+  "#80b1d3",
+  "#fdb462",
+  "#b3de69",
+  "#fccde5",
+  "#d9d9d9",
+  "#bc80bd",
+  "#ccebc5",
+  "#ffed6f"
+)
+
+map_colors <- c(
+  "#a6cee3",
+  "#1f78b4",
+  "#b2df8a",
+  "#33a02c",
+  "#fb9a99",
+  "#e31a1c",
+  "#fdbf6f",
+  "#ff7f00",
+  "#cab2d6",
+  "#6a3d9a",
+  "#ffff99",
+  "#b15928"
+)
+
+price_color <- c(
+  "#33a02c",
+  "#e31a1c"
+)
+
+sf_use_s2(FALSE)
+
+rails_cropped <- opnv_rails %>% 
+  st_crop(
+    xmin = 13, ymin = 52.3,
+    xmax = 13.8, ymax = 52.7
+  )
+
+rails_cropped %>% plot()
+
+plot_ly() %>% 
+  add_sf(
+    data = geo_bezirk, color = ~BEZ_NAME, 
+    span = I(0.5), colors = map_colors,
+    hoverinfo='skip'
+  ) %>% 
+  add_sf(
+    data = opnv_rails %>% 
+      st_crop(
+        xmin = 13, ymin = 52.3,
+        xmax = 13.8, ymax = 52.7
+      ) %>% st_sf() %>% st_cast(),
+    name = 'Rail'
+  ) %>% 
+  add_sf(
+    data = opnv_stations %>% 
+      st_crop(
+        xmin = 13, ymin = 52.3,
+        xmax = 13.8, ymax = 52.7
+      ),
+    name = 'Station'
+  ) %>% 
+  add_markers(
+    data = df_airbnb,
+    x = ~longitude,
+    y = ~latitude,
+    color = I("black"),
+    text = ~str_c(price, " €"),
+    hoverinfo='text',
+    alpha = 0.3,
+    name = 'airBNB'
+  ) %>% layout(
+    legend=list(
+      x=0,
+      xanchor='left',
+      yanchor='bottom',
+      orientation='h'
+    )
+  )
+
+ggplotly(
+  ggplot(geo_bezirk) + 
+    geom_sf(aes(fill = BEZ_NAME)) +
+    geom_sf(
+      data = airbnb_coordinates,
+      aes(geometry = geometry),
+      size = 1,
+      color = "black",
+      alpha = .3) +
+    theme_bw()
+) %>% layout(
+  legend=list(
+    x=0, 
+    xanchor='left',
+    yanchor='bottom',
+    orientation='h'
+    )
+  )
+
+#### leaflet ####
+
+library(leaflet)
+
+basemap <- leaflet() %>%
+  # add different provider tiles
+  addProviderTiles(
+    "OpenStreetMap",
+    # give the layer a name
+    group = "OpenStreetMap"
+  )
+
+basemap %>% addMarkers(
+  data = airbnb_coordinates
+)
 
 #### visualize price of airbnb ####
 
@@ -798,3 +921,8 @@ ordered_params <- tidybayes::spread_draws(
   bsp_mosentiment_for_name, 
   simo_mosentiment_for_name1[num]
   ) %>% pivot_wider(names_from = num, values_from = simo_mosentiment_for_name1)
+
+#### rethinkng ####
+
+library(rethinking)
+

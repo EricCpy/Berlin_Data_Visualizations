@@ -262,18 +262,35 @@ opnv_stations_no_tram_berlin <- opnv_stations %>%
     xmax = 13.75, ymax = 52.69
   )
 
-# ---- DISTANCES ----
+# # ---- DISTANCES ----
+# 
+# #### OPNV ####
+# 
+# airbnb_opnv_distances <- st_distance(opnv_stations_no_tram_berlin, airbnb_coordinates)
+# df_airbnb <- df_airbnb %>% bind_cols(
+#   distance_opnv = apply(airbnb_opnv_distances, 2, min)
+#   )
+# 
+# #### toilets ####
+# 
+# airbnb_toilet_distances <- st_distance(toilet_coordinates, airbnb_coordinates)
+# df_airbnb <- df_airbnb %>% bind_cols(
+#   distance_toilet = apply(airbnb_toilet_distances, 2, min)
+# )
 
-#### OPNV ####
+# ---- VISUALS ----
 
-airbnb_opnv_distances <- st_distance(opnv_stations_no_tram_berlin, airbnb_coordinates)
-df_airbnb <- df_airbnb %>% bind_cols(
-  distance_opnv = apply(airbnb_opnv_distances, 2, min)
-  )
-
-#### toilets ####
-
-airbnb_toilet_distances <- st_distance(toilet_coordinates, airbnb_coordinates)
-df_airbnb <- df_airbnb %>% bind_cols(
-  distance_toilet = apply(airbnb_toilet_distances, 2, min)
+bezirk_colors <- c(
+  "#a6cee3",
+  "#1f78b4",
+  "#b2df8a",
+  "#33a02c",
+  "#fb9a99",
+  "#e31a1c",
+  "#fdbf6f",
+  "#ff7f00",
+  "#cab2d6",
+  "#6a3d9a",
+  "#ffff99",
+  "#b15928"
 )

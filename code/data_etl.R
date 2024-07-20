@@ -40,82 +40,6 @@ df_listings_cleaned_with_review_sentiment <- df_listings_cleaned %>% inner_join(
   df_review_sentiments_aggregated, by = c("id" = "id")
 )
 
-# ---- AREAS -----
-
-#### information ####
-
-##### Bezirke #####
-
-bezirk_name_id <- tribble(
-  ~BEZ_NAME, ~BEZ_ID,
-  "Mitte", "01",
-  "Friedrichshain-Kreuzberg", "02",
-  "Pankow", "03",
-  "Charlottenburg-Wilmersdorf", "04",
-  "Spandau", "05",
-  "Steglitz-Zehlendorf", "06",
-  "Tempelhof-Schöneberg", "07",
-  "Neukölln", "08",
-  "Treptow-Köpenick", "09",
-  "Marzahn-Hellersdorf", "10",
-  "Lichtenberg", "11",
-  "Reinickendorf", "12",
-)
-
-##### LOR #####
-
-lor_inhabitants <- read_csv2("data/lor/einwohner_lor_2020-12.csv", col_types = "c") %>% 
-  select(-c(ZEIT, BEZ, PGR, BZR, PLR, STADTRAUM))
-lor_foreigner <- read_csv2("data/lor/einwohner_foreign_lor_2020-12.csv", col_types = "c") %>% 
-  select(-c(ZEIT, BEZ, PGR, BZR, PLR, STADTRAUM))
-lor_migration_bg <- read_csv2("data/lor/einwohner_migrationbackground_lor_2020-12.csv", col_types = "c") %>% 
-  select(-c(ZEIT, BEZ, PGR, BZR, PLR, STADTRAUM))
-
-##### election units #####
-
-party_votes <- read_csv2("data/Wahlergebnisse Berlin 2016/Berlin_AH16_W2.csv", col_types = "c")
-
-#### geodata ####
-
-##### air bnbs #####
-
-airbnb_coordinates <- df_listings_cleaned_with_review_sentiment[, c("longitude", "latitude")] |> 
-  as.matrix() |> 
-  st_multipoint() |> 
-  st_sfc(crs = 4326) |> 
-  st_cast('POINT') 
-
-##### election units #####
-
-geo_elect_units <- sf::st_read(dsn = "data/Wahlbezirke") %>% 
-  st_make_valid(tol = 0.00001) %>% st_transform(4326) %>% 
-  mutate(
-    BEZNAME = str_replace_all(BEZNAME, "\xf6", "ö"),
-    BWB = str_c(str_sub(BWB, 1, 2), "B", str_sub(BWB, 3, 4))
-  )
-
-##### LOR #####
-
-geo_lor <- sf::st_read(dsn = "data/lor/Planung") %>% 
-  st_make_valid(tol = 0.00001) %>% st_transform(4326) %>% 
-  mutate(
-    BEZ_ID = str_sub(PLR_ID, 1, 2),
-    PGR_ID = str_sub(PLR_ID, 1, 4),
-    BZR_ID = str_sub(PLR_ID, 1, 6)
-  ) %>% 
-  left_join(bezirk_name_id, by = c("BEZ_ID" = "BEZ_ID"))
-
-##### Bezirke #####
-
-geo_bezirk <- geo_lor %>% aggregate(list(BEZ_NAME=geo_lor$BEZ_NAME), FUN=function(x) 1)
-
-##### opnv #####
-
-opnv_rails <- sf::st_read(dsn = "data/OPNV/Strecken/") %>% 
-  st_make_valid(tol = 0.00001) %>% st_transform(4326)
-opnv_stations <- sf::st_read(dsn = "data/OPNV/Stationen/") %>% 
-  st_make_valid(tol = 0.00001) %>% st_transform(4326)
-
 # ---- REGRESSION ----
 
 df_airbnb <- df_listings_cleaned_with_review_sentiment %>% 
@@ -182,3 +106,174 @@ df_airbnb <- df_airbnb %>% select(-amenities) %>%
     airbnb_amenities,
     by = c("id" = "id")
   )
+
+# ---- AREAS -----
+
+#### information ####
+
+##### Bezirke #####
+
+bezirk_name_id <- tribble(
+  ~BEZ_NAME, ~BEZ_ID,
+  "Mitte", "01",
+  "Friedrichshain-Kreuzberg", "02",
+  "Pankow", "03",
+  "Charlottenburg-Wilmersdorf", "04",
+  "Spandau", "05",
+  "Steglitz-Zehlendorf", "06",
+  "Tempelhof-Schöneberg", "07",
+  "Neukölln", "08",
+  "Treptow-Köpenick", "09",
+  "Marzahn-Hellersdorf", "10",
+  "Lichtenberg", "11",
+  "Reinickendorf", "12",
+)
+
+##### LOR #####
+
+lor_inhabitants <- read_csv2("data/lor/einwohner_lor_2020-12.csv", col_types = "c") %>% 
+  select(-c(ZEIT, BEZ, PGR, BZR, PLR, STADTRAUM))
+lor_foreigner <- read_csv2("data/lor/einwohner_foreign_lor_2020-12.csv", col_types = "c") %>% 
+  select(-c(ZEIT, BEZ, PGR, BZR, PLR, STADTRAUM))
+lor_migration_bg <- read_csv2("data/lor/einwohner_migrationbackground_lor_2020-12.csv", col_types = "c") %>% 
+  select(-c(ZEIT, BEZ, PGR, BZR, PLR, STADTRAUM))
+
+###### crime rate ######
+
+crime_rate <- readxl::read_excel("data/Kriminalität Fallzahlen&HZ 2014-2023.xlsx", skip = 4, sheet = "Fallzahlen_2023")
+
+###### gigabit internet ######
+
+gigabit_supply <- rio::import("data/Berlin_LOR_Versorgungsdaten_Stand_2402.xlsx", skip = 3)
+
+###### traffic accidents ######
+traffic_accidents <- rio::import("data/AfSBBB_BE_LOR_Strasse_Strassenverkehrsunfaelle_2020_Datensatz.csv") %>% 
+  mutate(LOR_ab_2021 = str_pad(LOR_ab_2021, 8, "0", side = "left")) %>% group_by(LOR_ab_2021) %>% 
+  summarise(count = n()) %>% rename(PLR_ID = LOR_ab_2021)
+
+##### election units #####
+
+election_2016_party_vote <- read_csv2("data/Wahlergebnisse Berlin 2016/Berlin_AH16_W2.csv")
+
+##### public toilets #####
+
+toilets <- rio::import("data/berliner-toiletten-standorte.xlsx", skip = 10)
+toilet_coordinates <- toilets[, c("Längengrad", "Breitengrad")] |> 
+  mutate_all(~str_replace(., ",", ".")) %>% 
+  drop_na() %>%
+  mutate_all(~if_else(str_sub(., 3, 3) == ".", . , str_c(str_sub(., 1, 2), ".", str_sub(., 3, -1)))) %>% 
+  mutate_all(~as.numeric(.)) %>% 
+  as.matrix() |> 
+  st_multipoint() |> 
+  st_sfc(crs = 4326) |> 
+  st_cast('POINT')
+
+##### wohnlage #####
+
+airbnb_with_rent_data_median_knn <- readRDS("saved_objects/airbnb_with_rent_data_median_knn.rds") %>% 
+  mutate(airbnb_id = as.character(airbnb_id)) %>% 
+  right_join(
+    df_airbnb %>% select(id),
+    by = c("airbnb_id" = "id")
+  )
+
+#### geodata ####
+
+##### airBNBs #####
+
+airbnb_coordinates <- df_airbnb[, c("longitude", "latitude")] |> 
+  as.matrix() |> 
+  st_multipoint() |> 
+  st_sfc(crs = 4326) |> 
+  st_cast('POINT') 
+
+##### election units #####
+
+geo_elect_units <- sf::st_read(dsn = "data/Wahlbezirke") %>% 
+  st_make_valid(tol = 0.00001) %>% st_transform(4326) %>% 
+  mutate(
+    BEZNAME = str_replace_all(BEZNAME, "\xf6", "ö"),
+    BWB = str_c(str_sub(BWB, 1, 2), "B", str_sub(BWB, 3, 4))
+  )
+
+airbnb_election_unit_mapping <- st_intersection(
+  geo_elect_units %>% st_transform(9311),
+  airbnb_coordinates %>% st_transform(9311)
+) %>% st_transform(4326) %>% 
+  select(FID_1) %>% 
+  bind_cols("airbnb_id" = df_airbnb$id)
+
+election_2016_party_vote_UWB_with_BWB <- election_2016_party_vote %>% filter(Wahlbezirksart == "Urnenwahlbezirk") %>% 
+  mutate(Adresse = str_remove(Adresse, "W")) %>% 
+  left_join(
+    geo_elect_units %>% as.data.frame() %>% select(UWB, BWB),
+    by = c("Adresse" = "UWB")
+  )
+
+election_results_summed_for_BWB <- election_2016_party_vote_UWB_with_BWB %>% group_by(BWB) %>% 
+  select_if(is.numeric) %>% select(-Bundestagswahlkreis) %>% 
+  summarise_all(sum) %>% bind_rows(
+    election_2016_party_vote %>% filter(Wahlbezirksart == "Briefwahlbezirk") %>% 
+      rename(BWB = Adresse) %>% group_by(BWB) %>% 
+      select_if(is.numeric) %>% select(-Bundestagswahlkreis) 
+  ) %>% group_by(BWB) %>% summarise_all(sum)
+
+##### LOR #####
+
+geo_lor <- sf::st_read(dsn = "data/lor/Planung") %>% 
+  st_make_valid(tol = 0.00001) %>% st_transform(4326) %>% 
+  mutate(
+    BEZ_ID = str_sub(PLR_ID, 1, 2),
+    PGR_ID = str_sub(PLR_ID, 1, 4),
+    BZR_ID = str_sub(PLR_ID, 1, 6)
+  ) %>% 
+  left_join(bezirk_name_id, by = c("BEZ_ID" = "BEZ_ID"))
+
+airbnb_lor_mapping <- st_intersection(
+  geo_lor %>% st_transform(9311),
+  airbnb_coordinates %>% st_transform(9311)
+) %>% st_transform(4326) %>% 
+  select(PLR_ID) %>% 
+  bind_cols("airbnb_id" = df_airbnb$id)
+
+##### Bezirke #####
+
+geo_bezirk <- geo_lor %>% aggregate(
+  list(BEZ_NAME=geo_lor$BEZ_NAME), FUN=function(x) 1
+  )
+
+##### opnv #####
+
+opnv_rails <- sf::st_read(dsn = "data/OPNV/Strecken/") %>% 
+  st_make_valid(tol = 0.00001) %>% st_transform(4326)
+opnv_stations <- sf::st_read(dsn = "data/OPNV/Stationen/") %>% 
+  st_make_valid(tol = 0.00001) %>% st_transform(4326)
+
+opnv_rails_no_tram_berlin <- opnv_rails %>% 
+  filter(Bahn_Typ_k != "T") %>% 
+  st_crop(
+    xmin = 13.08, ymin = 52.32,
+    xmax = 13.75, ymax = 52.69
+  ) %>% st_sf() %>% st_cast()
+opnv_stations_no_tram_berlin <- opnv_stations %>% 
+  filter(Bahn_Typ_k != "T") %>% 
+  st_crop(
+    xmin = 13.08, ymin = 52.32,
+    xmax = 13.75, ymax = 52.69
+  )
+
+# ---- DISTANCES ----
+
+#### OPNV ####
+
+airbnb_opnv_distances <- st_distance(opnv_stations_no_tram_berlin, airbnb_coordinates)
+df_airbnb <- df_airbnb %>% bind_cols(
+  distance_opnv = apply(airbnb_opnv_distances, 2, min)
+  )
+
+#### toilets ####
+
+airbnb_toilet_distances <- st_distance(toilet_coordinates, airbnb_coordinates)
+df_airbnb <- df_airbnb %>% bind_cols(
+  distance_toilet = apply(airbnb_toilet_distances, 2, min)
+)

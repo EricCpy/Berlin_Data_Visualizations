@@ -421,11 +421,12 @@ elect_units %>% left_join(
     mapping = aes(geometry = geometry, fill = median)
   )
 
-airbnb_with_lor_units <- st_intersection(
-  lor %>% st_transform(9311),
-  points %>% st_transform(9311)
+airbnb_lor_unit_mapping <- st_intersection(
+  geo_lor %>% st_transform(9311),
+  airbnb_coordinates %>% st_transform(9311)
 ) %>% st_transform(4326) %>% 
-  bind_cols(airbnb)
+  pull(PLR_ID) %>% 
+  bind_cols("airbnb_id" = df_airbnb$id)
 
 airbnb_lor <- airbnb_with_lor_units %>% as_tibble() %>% group_by(PLR_ID, PLR_NAME) %>% 
   summarise(median = median(price, na.rm = TRUE), MAD = mad(price, na.rm = TRUE), count = n()) 
@@ -736,7 +737,7 @@ anova(lm_base, lm_region, lm_opnv1, lm_wc1, lm_gigabit1)
 
 traffic_accidents <- rio::import("data/AfSBBB_BE_LOR_Strasse_Strassenverkehrsunfaelle_2020_Datensatz.csv") %>% 
   mutate(LOR_ab_2021 = str_pad(LOR_ab_2021, 8, "0", side = "left")) %>% group_by(LOR_ab_2021) %>% 
-  summarise(count = n())
+  summarise(count = n()) %>% rename(PLR_ID = LOR_ab_2021)
 
 airbnb_with_lor_units_with_traffic_accidents <- airbnb_with_lor_units %>% left_join(
   traffic_accidents, by = c("PLR_ID" = "LOR_ab_2021")

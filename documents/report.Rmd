@@ -12,6 +12,8 @@ csl: norsk-apa-manual.csl
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+options(scipen = 1, digits = 2)
+
 source("code/setup.R")
 
 full_refit = F
@@ -20,7 +22,7 @@ full_refit = F
 # Introduction
 Airbnb is a leading online marketplace that connects homeowners with individuals seeking temporary accommodations. It operates in over 220 countries and regions, making it a global player in the hospitality industry.
 
-Examining the factors influencing Airbnb characteristics, such as prices, is particularly interesting because these are shaped by a variety of factors like location, seasonality and local events. Understanding these influences can provide valuable insights to find the best deals for an apartment and reveal a broader impact of external factors on Airbnb accommodations. Our report will focus on [Airbnb data](https://insideairbnb.com/get-the-data/) [@corona_inside_nodate] from Berlin for the years 2023 and 2024.
+Examining the factors influencing Airbnb characteristics, such as prices, is particularly interesting because these are shaped by a variety of factors like location, seasonality and local events. Understanding these influences can provide valuable insights to find the best deals for an apartment and reveal a broader impact of external factors on Airbnb accommodations. Our report will focus on [Airbnb data](https://insideairbnb.com/get-the-data/) [@corona_get_nodate] from Berlin for the years 2023 and 2024.
 
 
 ```{r templateFigure, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
@@ -228,16 +230,11 @@ sim_reputation_only_model %>%
   geom_violin()
 ```
 
-Following @mcelreath_statistical_2020 book on bayesian statistics we start by specify two base models and simulate data from those to compare it with the real data.
+Following @mcelreath_statistical_2020 book on bayesian statistics we start by specify two base models and simulate data from those to compare it with the real data. Simulating data and comparing it to real data is a good possibility to get a feeling for plausible priors.
 
-The most basic model possible assumes that the price just follows a given distribution (e.g. normal distribution). This is probably not correct. An equal approach on simulation comes from a model where we believe that the price is dependent on some variables but those variables were not measured. The statistical model is shown in Equation \@ref(eq:base-model). The corresponding DAG is shown in Figure \@ref(fig:dag-base-model).
+The most basic model possible assumes that the price just follows a given distribution (e.g. normal distribution). This is probably not correct. An equal approach on simulation comes from a model where we believe that the price is dependent on some variables but those variables were not measured. The corresponding DAG is shown in Figure \@ref(fig:dag-base-model).
 
-\begin{equation} 
-log(price) \sim Normal(\mu, \sigma)
-(\#eq:base-model)
-\end{equation} 
-
-```{r dag-base-model, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="DAG for most basic model", fig.align='center', fig.dim = c(5, 3)}
+```{r dag-base-model, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="DAG for most basic model", fig.align='center', fig.dim = c(4, 4)}
 dag <- dagify(
   price ~ u,
   latent = "u",
@@ -246,10 +243,70 @@ dag <- dagify(
 ) %>% tidy_dagitty()
 
 ggdag_status(dag, use_labels = "label", text = FALSE) + 
-  theme_dag()
+  theme_dag() +
+  theme(
+    legend.position = "bottom"
+  )
 ```
 
-Simulating data and comparing it to real data is a good possibility to get a feeling for plausible priors. As starting values for the base model a mean price of 100 € was chosen. This corresponds to a value of `r log(100)` on the log scale. As standard deviation \(0.5\) was chosen.
+As starting values for the base model a mean price of 100 € was chosen. This corresponds to a value of `r log(100)` on the log scale. As standard deviation \(0.5\) was chosen. The statistical model is shown in Equation \@ref(eq:base-model). 
+
+\begin{equation} 
+log(price) \sim Normal(\mu, \sigma) \\
+\mu = 4.61 \\
+\sigma = 0.5
+(\#eq:base-model)
+\end{equation} 
+
+The statistical model formulated in Equation \@ref(eq:base-model) uses point-wise defined "priors" - and thus is not a bayesian but a frequentist model. Compare this to Equation \@ref(eq:base-model-bayesian). Here $\mu$ and $\sigma$ are distributions - not single values. The mean and standard deviaten chosen in the frequentist model are both chosen in the prior for $\mu$ and $\sigma$ got a completly new distribution.
+
+\begin{equation} 
+log(price) \sim Normal(\mu, \sigma) \\
+\mu \sim Normal(4.61, 0.5) \\
+\sigma \sim Uniform(0, 1)
+(\#eq:base-model-bayesian)
+\end{equation} 
+
+Since in the bayesian model \@ref(eq:base-model-bayesian) \mu and \sigma vary we find the simulated price range to be wider compared with the simulations from the frequentist model \@ref(eq:base-model).
+
+Note, that the DAG shown in Figure \@ref(fig:dag-base-model) is corresponding to both equations. The important role of DAGs is not to define an exact statistic model but to show the beliefs about causual effects that generate the real data. It is benefitial to create a graphical represenation of the assumed casual model to select which covariables to include in the statistical model. In a DAG one can identify fork-, pipe- or collider-constallations and identify backdoor paths. Which covariable to include or exclude depends on the effect one tries to estimate (to investigate a hypothesis).
+
+\begin{equation} 
+log(price) \sim Normal(\mu, \sigma) \\
+\mu = 
+(\#eq:base-model)
+\end{equation} 
+
+```{r dag-reputation-only-model, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="DAG for most basic model", fig.align='center', fig.dim = c(4, 4)}
+dag <- dagify(
+  price ~ u + reputation,
+  latent = c("u", "reputation"),
+  outcome = "price",
+  labels = c(price = "price", u = "unobserved", reputation = "reputation")
+) %>% tidy_dagitty()
+
+ggdag_status(dag, use_labels = "label", text = FALSE) + 
+  theme_dag() +
+  theme(
+    legend.position = "bottom"
+  )
+```
+
+```{r dag-reputation-only-model-backdoor, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="DAG for most basic model", fig.align='center', fig.dim = c(4, 4)}
+dag <- dagify(
+  price ~ u + reputation,
+  reputation ~ u,
+  latent = c("u", "reputation"),
+  outcome = "price",
+  labels = c(price = "price", u = "unobserved", reputation = "reputation")
+) %>% tidy_dagitty()
+
+ggdag_status(dag, use_labels = "label", text = FALSE) + 
+  theme_dag() +
+  theme(
+    legend.position = "bottom"
+  )
+```
 
 # References
 

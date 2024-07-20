@@ -952,8 +952,13 @@ n <- 6306
 mean <- log(100)
 sd <- 0.5
 
+sample_mu <- rnorm(n, mean, sd)
+sample_sigma <- runif(n, 0, 1)
+prior_h <- rnorm( n , sample_mu , sample_sigma )
+
 sim_base_model <- tibble(
-  sim_base = rnorm(n, mean, sd),
+  sim_base_point_prior = rnorm(n, mean, sd),
+  sim_base_distr_prior = prior_h,
   original = df_airbnb$log_price
 )
 
@@ -962,7 +967,7 @@ sim_base_model %>%
   ggplot() +
   geom_density(aes(x = value), fill = "#AACCFF") +
   facet_wrap(
-    ~name, nrow = 2
+    ~name, nrow = 3
     )
 
 ###### Bezirk reputation ######

@@ -63,17 +63,22 @@ centroids <- raw %>%
 
 ggplot(raw) + 
   geom_sf(aes(fill = BEZ_NAME), color = NA) +
-  geom_sf(data = raw, fill = NA, color = "black", size = 0.5) +  # Bordures entre les Bezirks
-  geom_text(data = centroids, aes(label = n, geometry = geometry), stat = "sf_coordinates", size = 5, color = "black") +  # Étiquettes de texte
+  geom_sf(data = raw, fill = NA) + 
+  geom_text(data = centroids, aes(label = n, geometry = geometry), stat = "sf_coordinates", size = 5, color = "black") +
   scale_fill_manual(values = bezirk_colors, name = "BEZ_NAME") +
   theme_void() +
   labs(title = "Bezirk in Berlin with Number of Airbnbs",
        fill = "Bezirk")
 
 #number of airbnbs on a scale (try log scale)
+borough_borders <- raw %>%
+  group_by(BEZ_ID) %>%
+  summarise(geometry = st_union(geometry))
+
 ggplot(raw) +
-  geom_sf(aes(fill = n)) + 
-  scale_fill_gradient(low = "yellow", high = "red", name = "Number of Airbnbs") +
+  geom_sf(aes(fill = n), color = "black", size = 0.2) +  # Smaller internal borders
+  geom_sf(data = borough_borders, fill = NA, color = "black", size = 1) +  # Larger borders for main boroughs
+  scale_fill_gradient(low = "lightyellow", high = "darkred", name = "Number of Airbnbs") +
   theme_void() +
   labs(title = "Number of Airbnbs by Bezirk in Berlin",
        fill = "Number of Airbnbs")

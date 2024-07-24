@@ -44,7 +44,9 @@ ggplot(df_listings_cleaned, aes(x = sentiment_for_name, y = log(price), fill = s
   labs(title = "Distribution of prices by sentiment", x = "Sentiment", y = "Price") +
   theme_minimal()
 
-# same but for airbnb reviews
+# TODO same but for airbnb reviews
+# TODO are there more english airbnbs in some districts, review ratings in these districts by english reviews
+
 # ---- START OF VISUALIZATION: english vs german reviews, are german reviews/expectations lower/higher ----
 
 df_percentage <- df_review_sentiments %>%
@@ -65,11 +67,13 @@ ggplot(df_percentage, aes(x = language, y = percentage, fill = sentiment)) +
 # conclusion: most reviews are positive and germans have more negative reviews, 
 # but we cant really compare these results because we used different sentiment analyizers for different languages
 
+# TODO same but for rating instead of sentiment
+
 # ---- END OF VISUALIZATION: english vs german reviews, are german reviews/expectations lower/higher -----
 
 
-# review sentiment time analysis, normal plots and animated map with slider for year or month selection
-# interactive map price to review sentiment to rating metrics in dataset
+# TODO review sentiment time analysis, normal plots and animated map with slider for year or month selection
+# TODO interactive map price to review sentiment to rating metrics in dataset
 
 # ---- START OF VISUALIZATION: map reviews in region by sentiment -----
 library(scales)

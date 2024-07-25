@@ -44,10 +44,17 @@ ggplot(df_listings_cleaned, aes(x = sentiment_for_name, y = log(price), fill = s
   labs(title = "Distribution of prices by sentiment", x = "Sentiment", y = "Price") +
   theme_minimal()
 
+ggplot(df_listings_cleaned, aes(x = sentiment_for_name, y = review_scores_rating, fill = sentiment_for_name)) +
+  geom_violin(trim = TRUE) +
+  geom_boxplot(width = 0.1, fill = "white") +
+  labs(title = "Distribution of rating by sentiment", x = "Sentiment", y = "Rating") +
+  theme_minimal()
+
 # TODO same but for airbnb reviews
 # TODO are there more english airbnbs in some districts, review ratings in these districts by english reviews
+# TODO in which months are more english/german reviews, where are the peaks in reviews
 
-# ---- START OF VISUALIZATION: english vs german reviews, are german reviews/expectations lower/higher ----
+# ---- START OF VISUALIZATION: english vs german reviews/ratings, are german reviews/expectations lower/higher ----
 
 df_percentage <- df_review_sentiments %>%
   group_by(language, sentiment) %>%
@@ -67,18 +74,12 @@ ggplot(df_percentage, aes(x = language, y = percentage, fill = sentiment)) +
 # conclusion: most reviews are positive and germans have more negative reviews, 
 # but we cant really compare these results because we used different sentiment analyizers for different languages
 
-# TODO same but for rating instead of sentiment
-
 # ---- END OF VISUALIZATION: english vs german reviews, are german reviews/expectations lower/higher -----
-
 
 # TODO review sentiment time analysis, normal plots and animated map with slider for year or month selection
 # TODO interactive map price to review sentiment to rating metrics in dataset
 
 # ---- START OF VISUALIZATION: map reviews in region by sentiment -----
-library(scales)
-library(sf)
-
 region_sentiment_scores <- df_listings_cleaned_with_review_sentiment %>%
   group_by(neighbourhood_group_cleansed) %>%
   summarize(sentiment_region_score = mean(mean_sentiment_score_for_reviews))
@@ -147,8 +148,89 @@ ggplot(region_sentiment_scores, aes(x = reorder(neighbourhood_group_cleansed, se
 
 # ---- END OF VISUALIZATION: map reviews in region by price segments -----
 
+# ---- START OF VISUALIZATION: map reviews in region by number ----
+listings_per_bezirk <- df_listings_cleaned_with_review_sentiment %>%
+  group_by(neighbourhood_group_cleansed) %>%
+  summarize(num_listings = n()) %>%
+  ungroup()
 
-# test stuff
+total_listings <- sum(listings_per_bezirk$num_listings)
+listings_per_bezirk <- listings_per_bezirk %>%
+  mutate(percentage_listings = (num_listings / total_listings) * 100)
+
+region_data <- region_sentiment_scores %>%
+  left_join(listings_per_bezirk, by = "neighbourhood_group_cleansed")
+
+min_percentage <- min(region_data$percentage_listings)
+max_percentage <- max(region_data$percentage_listings)
+
+score_to_color <- function(score, min_score, max_score) {
+  color_palette <- colorRampPalette(c("slateblue3", "lightblue", "limegreen"))(100)
+  color_palette[as.numeric(cut(score, breaks = seq(min_score, max_score, length.out = 101), include.lowest = TRUE))]
+}
+
+region_data <- region_data %>%
+  mutate(color = score_to_color(percentage_listings, min_percentage, max_percentage))
+
+lor <- sf::st_read(dsn = "data/lor/Planung") %>%
+  st_make_valid(tol = 0.00001) %>%
+  st_transform(4326) %>%
+  mutate(
+    BEZ_ID = str_sub(PLR_ID, 1, 2),
+    PGR_ID = str_sub(PLR_ID, 1, 4),
+    BZR_ID = str_sub(PLR_ID, 1, 6)
+  ) %>%
+  left_join(bezirke_name_id, by = c("BEZ_ID" = "BEZ_ID")) %>%
+  left_join(region_data, by = c("BEZ_NAME" = "neighbourhood_group_cleansed"))
+
+lor_combined <- lor %>%
+  group_by(BEZ_ID, BEZ_NAME) %>%
+  summarize(geometry = st_union(geometry), color = unique(color), .groups = 'drop') %>%
+  mutate(label_combined = paste(BEZ_ID, BEZ_NAME, sep = ": "))
+
+ggplot() +
+  geom_sf(data = lor_combined, aes(geometry = geometry, fill = label_combined)) +
+  geom_sf_text(data = lor_combined, aes(geometry = geometry, label = BEZ_ID), size = 3, color = "black") +
+  scale_fill_manual(values = lor_combined$color, name = "Bezirke (ID: Name)") +
+  theme_void() +
+  labs(title = "Percentage of Airbnbs by Bezirk in Berlin") +
+  theme(legend.position = "right", plot.title = element_text(hjust = 0.5))
+
+ggplot(region_data, aes(x = reorder(neighbourhood_group_cleansed, num_listings), 
+                        y = num_listings, fill = color)) +
+  geom_bar(stat = "identity") +
+  scale_fill_identity() + 
+  coord_flip() +
+  labs(title = "Number of Airbnbs by Neighborhood",
+       x = "Neighborhood",
+       y = "Number of Airbnbs") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+# ---- END OF VISUALIZATION: map reviews in region by number -----
+
+# --- START OF Visualization: Correlation between number of airbnbs and sentiment ---
+
+plot_correlation <- function(data, x_var, y_var) {
+  cor_spearman <- cor(data[[x_var]], data[[y_var]], method = "spearman")
+  cor_pearson <- cor(data[[x_var]], data[[y_var]], method = "pearson")
+  
+  ggplot(data, aes_string(x = x_var, y = y_var)) +
+    geom_point(color = "blue") +
+    geom_smooth(method = "lm", color = "red", se = FALSE) +
+    labs(
+      title = paste0("Correlation between ", x_var, " and ", y_var, "\nPearson: ", round(cor_pearson, 2), " Spearman: ", round(cor_spearman, 2)),
+      x = paste0(x_var, "-value"),
+      y = paste0(y_var, "-value")
+    ) +
+    theme_minimal()
+}
+
+plot_correlation(region_data, "num_listings", "sentiment_region_score")
+
+# ---- END OF VISUALIZATION: Correlation between number of airbnbs and sentiment -----
+
+# ---- START OF INTERACTIVE TEST STUFF ----
 
 str(df_review_sentiments)
 

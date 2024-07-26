@@ -50,9 +50,97 @@ ggplot(df_listings_cleaned, aes(x = sentiment_for_name, y = review_scores_rating
   labs(title = "Distribution of rating by sentiment", x = "Sentiment", y = "Rating") +
   theme_minimal()
 
-# TODO same but for airbnb reviews
-# TODO are there more english airbnbs in some districts, review ratings in these districts by english reviews
-# TODO in which months are more english/german reviews, where are the peaks in reviews
+# TODO: [TODO REPORT] same but for airbnb reviews, doesnt need to be done here, just add to report
+
+# ---- START OF VISUALIZATION: are there more english airbnbs in some districts, review ratings in these districts by english reviews ---- 
+df_english_reviews <- df_review_sentiments %>%
+  filter(language == "en")
+
+df_german_reviews <- df_review_sentiments %>%
+  filter(language == "de")
+
+df_review_percentages <- df_review_sentiments %>%
+  group_by(neighbourhood_group_cleansed) %>%
+  summarize(
+    total_reviews = n(),
+    english_reviews = sum(language == "en"),
+    german_reviews = sum(language == "de")
+  ) %>%
+  mutate(
+    percent_english = english_reviews / nrow(df_english_reviews),
+    percent_german = german_reviews / nrow(df_german_reviews)
+  )
+
+score_to_color <- function(score, min_score, max_score) {
+  color_palette <- colorRampPalette(c("slateblue3", "lightblue", "limegreen"))(100)
+  color_palette[as.numeric(cut(score, breaks = seq(min_score, max_score, length.out = 101), include.lowest = TRUE))]
+}
+
+bezirke_name_id <- tribble(
+  ~BEZ_NAME, ~BEZ_ID,
+  "Mitte", "01",
+  "Friedrichshain-Kreuzberg", "02",
+  "Pankow", "03",
+  "Charlottenburg-Wilmersdorf", "04",
+  "Spandau", "05",
+  "Steglitz-Zehlendorf", "06",
+  "Tempelhof-Schöneberg", "07",
+  "Neukölln", "08",
+  "Treptow-Köpenick", "09",
+  "Marzahn-Hellersdorf", "10",
+  "Lichtenberg", "11",
+  "Reinickendorf", "12",
+)
+
+lor <- sf::st_read(dsn = "data/lor/Planung") %>% 
+  st_make_valid(tol = 0.00001) %>% st_transform(4326) %>% 
+  mutate(
+    BEZ_ID = str_sub(PLR_ID, 1, 2),
+    PGR_ID = str_sub(PLR_ID, 1, 4),
+    BZR_ID = str_sub(PLR_ID, 1, 6)
+  ) %>% 
+  left_join(bezirke_name_id, by = c("BEZ_ID" = "BEZ_ID"))
+
+lor <- left_join(lor, df_review_percentages, by = c("BEZ_NAME" = "neighbourhood_group_cleansed"))
+
+lor_combined <- lor %>%
+  group_by(BEZ_ID, BEZ_NAME) %>%
+  summarize(
+    geometry = st_union(geometry),
+    percent_german = unique(percent_german),
+    percent_english = unique(percent_english),
+    .groups = 'drop'
+  ) %>%
+  mutate(
+    color_german = score_to_color(percent_german, min(percent_german, na.rm = TRUE), max(percent_german, na.rm = TRUE)),
+    color_english = score_to_color(percent_english, min(percent_english, na.rm = TRUE), max(percent_english, na.rm = TRUE)),
+    label_combined = paste(BEZ_ID, BEZ_NAME, sep = ": ")
+  )
+
+ggplot() +
+  geom_sf(data = lor_combined, aes(geometry = geometry, fill = label_combined)) +
+  geom_sf_text(data = lor_combined, aes(geometry = geometry, label = BEZ_ID), size = 3, color = "black") +
+  scale_fill_manual(values = lor_combined$color_german, name = "Bezirke (ID: Name)") +
+  theme_void() +
+  labs(title = "Percentage of German Reviews") +
+  theme(legend.position = "right", plot.title = element_text(hjust = 0.5))
+
+# Plot for English reviews
+ggplot() +
+  geom_sf(data = lor_combined, aes(geometry = geometry, fill = label_combined)) +
+  geom_sf_text(data = lor_combined, aes(geometry = geometry, label = BEZ_ID), size = 3, color = "black") +
+  scale_fill_manual(values = lor_combined$color_english, name = "Bezirke (ID: Name)") +
+  theme_void() +
+  labs(title = "Percentage of English Reviews") +
+  theme(legend.position = "right", plot.title = element_text(hjust = 0.5))
+
+
+# ---- END OF VISUALIZATION: are there more english airbnbs in some districts, review ratings in these districts by english reviews ----
+
+# ---- START OF VISUALIZATION: in which months are more english/german reviews, where are the peaks in reviews ---- 
+# TODO
+
+# ---- END OF VISUALIZATION: in which months are more english/german reviews, where are the peaks in reviews ----
 
 # ---- START OF VISUALIZATION: english vs german reviews/ratings, are german reviews/expectations lower/higher ----
 
@@ -216,7 +304,7 @@ ggplot(df_listings_cleaned_with_review_sentiment, aes(x = price, y = median_sent
 
 
 # test to see which variable has stronger influence on price / is more significant
-model_both <- lm(price ~ review_scores_rating + median_sentiment_score_for_reviews, data = df_listings_cleaned_with_review_sentiment)
+model_both <- lm(price ~ review_scores_rating + median_sentiment_score_for_reviews + I(median_sentiment_score_for_reviews^2), data = df_listings_cleaned_with_review_sentiment)
 summary(model_both)
 
 # ---- END OF VISUALIZATION:  map price to review sentiment to rating in dataset ----
@@ -272,7 +360,7 @@ lor_combined <- lor %>%
 ggplot() +
   geom_sf(data = lor_combined, aes(geometry = geometry, fill = label_combined)) +
   geom_sf_text(data = lor_combined, aes(geometry = geometry, label = BEZ_ID), size = 3, color = "black") +
-  scale_fill_manual(values = unique(lor_combined$color), name = "Bezirke (ID: Name)") + # Adjust the name and colors here
+  scale_fill_manual(values = unique(lor_combined$color), name = "Bezirke (ID: Name)") +
   theme_void() +
   labs(title = "Sentiment Map of Berlin") +
   theme(legend.position = "right", plot.title = element_text(hjust = 0.5))

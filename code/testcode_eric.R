@@ -76,8 +76,150 @@ ggplot(df_percentage, aes(x = language, y = percentage, fill = sentiment)) +
 
 # ---- END OF VISUALIZATION: english vs german reviews, are german reviews/expectations lower/higher -----
 
-# TODO review sentiment time analysis, normal plots and animated map with slider for year or month selection
-# TODO interactive map price to review sentiment to rating metrics in dataset
+# ---- START OF VISUALIZATION: review sentiments over time ----
+library(RColorBrewer)
+color_palette <- brewer.pal(n = length(unique(df_review_sentiments$neighbourhood_group_cleansed)), name = "Set3")
+df_review_sentiments$date <- as.Date(df_review_sentiments$date, format = "%Y-%m-%d")
+df_review_sentiments$year <- as.numeric(format(df_review_sentiments$date, "%Y"))
+
+yearly_sentiment_by_neighbourhood <- df_review_sentiments %>%
+  group_by(year, neighbourhood_group_cleansed) %>%
+  summarize(mean_sentiment = mean(sentiment_score), .groups = 'drop')
+
+overall_yearly_sentiment <- df_review_sentiments %>%
+  group_by(year) %>%
+  summarize(mean_sentiment = mean(sentiment_score), .groups = 'drop')
+
+ggplot(overall_yearly_sentiment, aes(x = year, y = mean_sentiment)) +
+  geom_line(group = 1) +
+  geom_point() +
+  scale_x_continuous(breaks = seq(min(overall_yearly_sentiment$year), 
+                                  max(overall_yearly_sentiment$year), 
+                                  by = 1)) + 
+  labs(title = "Mean Sentiment Score Over the Years",
+       x = "Year", y = "Mean Sentiment Score") +
+  theme_minimal()
+
+ggplot() +
+  geom_line(data = yearly_sentiment_by_neighbourhood, aes(x = year, y = mean_sentiment, color = neighbourhood_group_cleansed, group = neighbourhood_group_cleansed), size = 1, alpha = 2) +
+  geom_point(data = yearly_sentiment_by_neighbourhood, aes(x = year, y = mean_sentiment, color = neighbourhood_group_cleansed, group = neighbourhood_group_cleansed), size = 1.75, alpha = 2) +
+  geom_line(data = overall_yearly_sentiment, aes(x = year, y = mean_sentiment), color = "black", size = 1.2, alpha = 0.5) +
+  geom_point(data = overall_yearly_sentiment, aes(x = year, y = mean_sentiment), color = "black", size = 2, alpha = 0.5) +
+  scale_x_continuous(breaks = seq(min(overall_yearly_sentiment$year), 
+                                  max(overall_yearly_sentiment$year), 
+                                  by = 1)) + 
+  labs(title = "Mean Sentiment Score Over the Years by District",
+       x = "Year", y = "Mean Sentiment Score") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+  scale_color_manual(values = color_palette, name = "District")
+
+# Months
+
+df_review_sentiments$month <- as.numeric(format(df_review_sentiments$date, "%m"))
+
+monthly_sentiment_by_neighbourhood <- df_review_sentiments %>%
+  group_by(month, neighbourhood_group_cleansed) %>%
+  summarize(mean_sentiment = mean(sentiment_score), .groups = 'drop')
+
+overall_monthly_sentiment <- df_review_sentiments %>%
+  group_by(month) %>%
+  summarize(mean_sentiment = mean(sentiment_score), .groups = 'drop')
+
+month_labels <- setNames(month.abb, 1:12)
+
+ggplot(overall_monthly_sentiment, aes(x = month, y = mean_sentiment)) +
+  geom_line(group = 1) +
+  geom_point() +
+  labs(title = "Mean Sentiment Score Over the Months",
+       x = "Month", y = "Mean Sentiment Score") +
+  scale_x_continuous(breaks = 1:12, labels = month_labels) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+ggplot() +
+  geom_line(data = monthly_sentiment_by_neighbourhood, aes(x = month, y = mean_sentiment, color = neighbourhood_group_cleansed, group = neighbourhood_group_cleansed), size = 1, alpha = 2) +
+  geom_point(data = monthly_sentiment_by_neighbourhood, aes(x = month, y = mean_sentiment, color = neighbourhood_group_cleansed, group = neighbourhood_group_cleansed), size = 1.75, alpha = 2) +
+  geom_line(data = overall_monthly_sentiment, aes(x = month, y = mean_sentiment), color = "black", size = 1.2, alpha = 0.5) +
+  geom_point(data = overall_monthly_sentiment, aes(x = month, y = mean_sentiment), color = "black", size = 2, alpha = 0.5) +
+  labs(title = "Mean Sentiment Score Over the Months by District",
+       x = "Month", y = "Mean Sentiment Score") +
+  scale_x_continuous(breaks = 1:12, labels = month_labels) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+  scale_color_manual(values = color_palette, name = "District")
+
+# ---- END OF VISUALIZATION: review sentiments over time ----
+
+# ---- START OF VISUALIZATION:  map price to review sentiment to rating in dataset ----
+ggplot(df_listings_cleaned_with_review_sentiment, aes(x = price, y = review_scores_rating)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(
+    title = "Correlation Plot: Price vs Rating Score",
+    x = "Price",
+    y = "Rating Score"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "bottom"  # Position the legend at the bottom
+  )
+
+ggplot(df_listings_cleaned_with_review_sentiment, aes(x = price, y = median_sentiment_score_for_reviews)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(
+    title = "Correlation Plot: Price vs Review Sentiment Score",
+    x = "Price",
+    y = "Review Sentiment Score"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "bottom"  # Position the legend at the bottom
+  )
+
+
+# correlation between price and rating
+summary(aov(review_scores_rating ~ neighbourhood_group_cleansed, data=df_listings_cleaned_with_review_sentiment))
+summary(aov(median_sentiment_score_for_reviews ~ neighbourhood_group_cleansed, data=df_listings_cleaned_with_review_sentiment))
+
+ggplot(df_listings_cleaned_with_review_sentiment, aes(x = price, y = review_scores_rating)) +
+  geom_point(aes(color = neighbourhood_group_cleansed), alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE, aes(color = neighbourhood_group_cleansed)) +
+  facet_wrap(~ neighbourhood_group_cleansed) + 
+  labs(
+    title = "Correlation Plot: Price vs Rating Score by Bezirk",
+    x = "Price",
+    y = "Rating Score"
+  ) +
+  theme_minimal() +
+  theme(
+    strip.text = element_text(size = 12),
+    legend.position = "bottom"
+  )
+
+# correlation between price and review sentiment
+ggplot(df_listings_cleaned_with_review_sentiment, aes(x = price, y = median_sentiment_score_for_reviews)) +
+  geom_point(aes(color = neighbourhood_group_cleansed), alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE, aes(color = neighbourhood_group_cleansed)) +
+  facet_wrap(~ neighbourhood_group_cleansed) + 
+  labs(
+    title = "Correlation Plot: Price vs Review Sentiment Score by Bezirk",
+    x = "Price",
+    y = "Rating Score"
+  ) +
+  theme_minimal() +
+  theme(
+    strip.text = element_text(size = 12),
+    legend.position = "bottom" 
+  )
+
+
+# test to see which variable has stronger influence on price / is more significant
+model_both <- lm(price ~ review_scores_rating + median_sentiment_score_for_reviews, data = df_listings_cleaned_with_review_sentiment)
+summary(model_both)
+
+# ---- END OF VISUALIZATION:  map price to review sentiment to rating in dataset ----
 
 # ---- START OF VISUALIZATION: map reviews in region by sentiment -----
 region_sentiment_scores <- df_listings_cleaned_with_review_sentiment %>%

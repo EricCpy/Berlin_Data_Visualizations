@@ -29,10 +29,10 @@ df_review_sentiments <- read.csv("./data/airbnb/review_sentiments.csv") %>%
   as_tibble()
 
 df_review_sentiments <- inner_join(df_listings_cleaned, df_review_sentiments, by = c("id" = "listing_id")) %>%
+  mutate(sentiment_score = positive_sentiment-negative_sentiment) %>%
   as_tibble()
 
 df_review_sentiments_aggregated <- df_review_sentiments %>% 
-  mutate(sentiment_score = positive_sentiment-negative_sentiment) %>% 
   group_by(id) %>% 
   summarise(median_sentiment_score_for_reviews = median(sentiment_score), mean_sentiment_score_for_reviews = mean(sentiment_score))
 

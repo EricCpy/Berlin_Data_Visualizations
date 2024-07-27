@@ -264,7 +264,6 @@ bezirke_geometry %>%
 
 library(plotly)
 
-
 map_colors_pale <- c(
   "#8dd3c7",
   "#ffffb3",
@@ -367,6 +366,33 @@ ggplotly(
     yanchor='bottom',
     orientation='h'
     )
+  )
+
+plot_ly() %>% 
+  add_sf(
+    data = geo_bezirk,
+    span = I(0.5),
+    hoverinfo='skip'
+  ) %>% 
+  add_sf(
+    data = opnv_rails_no_tram_berlin,
+    name = 'Rail',
+    hoverinfo='skip'
+  ) %>% 
+  add_sf(
+    data = opnv_stations_no_tram_berlin,
+    name = 'Station',
+    hoverinfo='skip'
+  ) %>% 
+  add_markers(
+    data = df_airbnb,
+    x = ~longitude,
+    y = ~latitude,
+    color = ~log(price),
+    text = ~str_c(price, " €"),
+    hoverinfo='text',
+    alpha = 0.3,
+    name = 'Airbnb'
   )
 
 #### leaflet ####
@@ -983,12 +1009,22 @@ sim_base_model %>%
 n_bezirk <- 12
 bezirke <- sample(1:12, n, replace = TRUE)
 b_bezirk_reputation <- rnorm(12, 0, 0.5)
+b_bezirk_reputation_distr <- rnorm(n, b_bezirk_reputation[bezirke], 0.2)
+prior_bezirke = rnorm(n, sample_mu+b_bezirk_reputation_distr, sample_sigma)
+
+cbind(bezirke, b_bezirk_reputation_distr) %>% 
+  ggplot(
+    aes(
+      x = b_bezirk_reputation_distr,
+      y = bezirke,
+      fill = factor(bezirke)
+    )) +
+  geom_violin()
 
 sim_reputation_only_model <- tibble(
   bezirk = bezirke,
+  sim_reputation = prior_bezirke,
   original = df_airbnb$log_price
-) %>% mutate(
-  sim_reputation = rnorm(n, mean + b_bezirk_reputation[bezirk], sd)
 )
 
 sim_reputation_only_model %>% 
@@ -1001,13 +1037,23 @@ sim_reputation_only_model %>%
 
 sim_reputation_only_model %>% 
   select(-original) %>% 
+  mutate(
+    bezirk = str_c("Bezirk ", str_pad(bezirk, 2, "0", side = "left"))) %>% 
   ggplot(
     aes(
       x = sim_reputation,
       y = bezirk,
-      fill = factor(bezirk)
+      fill = bezirk
     )) +
-  geom_violin()
+  geom_violin() +
+  geom_boxplot(width = 0.2, fill = "white") +
+  scale_fill_manual(values = bezirk_colors, name = "Bezirk") +
+  ylab("Bezirk") +
+  xlab("log(price)") +
+  theme(
+    legend.position = "bottom",
+    legend.title.position = "top"
+  )
 
 #### ggdag ####
 
@@ -1111,7 +1157,41 @@ ggdag_status(mosquito_dag, use_labels = "label", text = FALSE) +
   guides(fill = FALSE, color = FALSE) +  # Disable the legend
   theme_dag()
 
-ggdag_adjustment_set(mosquito_dag, shadow = T,
+(ggdag_adjustment_set(mosquito_dag, shadow = T,
                      use_labels = "label", text = FALSE) +
-  theme_dag()
+  theme_dag()) %>% 
+  plot_arrows_on_top()
 
+dag <- dagify(
+  price ~ reputation + wohnlage,
+  reputation ~ wohnlage,
+  review ~ reputation + price,
+  # latent = c("u"),
+  exposure = "reputation",
+  outcome = "price",
+  labels = c(price = "price", #u = "unobserved", 
+             reputation = "reputation", wohnlage = "Wohnlage", review = "review")
+) %>% tidy_dagitty()
+
+(ggdag_adjust(dag, use_labels = "label", text = FALSE, var = c("wohnlage", "review")) + 
+    theme_dag() +
+    theme(
+      legend.position = "bottom"
+    )) %>% plot_arrows_on_top()
+
+#### point #####
+
+coords_hauptbahnhof <- tribble(
+  ~name, ~lat, ~lon,
+  "Hauptbahnhof", 52.52507464195593, 13.369127492553043
+) %>% 
+sf::st_as_sf(coords = c("lon", "lat"), crs = 4326)
+
+geo_elect_units %>% 
+  ggplot() + 
+  geom_sf(
+    mapping = aes(geometry = geometry, fill = BEZNAME)
+  ) + geom_sf(
+    data = coords_hauptbahnhof,
+    mapping = aes(geometry = geometry)
+  )

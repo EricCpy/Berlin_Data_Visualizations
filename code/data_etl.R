@@ -278,6 +278,18 @@ opnv_stations_no_tram_berlin <- opnv_stations %>%
 #   distance_toilet = apply(airbnb_toilet_distances, 2, min)
 # )
 
+#### Hauptbahnhof ####
+
+coords_hauptbahnhof <- tribble(
+  ~name, ~lat, ~lon,
+  "Hauptbahnhof", 52.52507464195593, 13.369127492553043
+) %>% 
+  sf::st_as_sf(coords = c("lon", "lat"), crs = 4326)
+
+df_airbnb <- df_airbnb %>% bind_cols(
+  distance_hauptbahnhof = st_distance(coords_hauptbahnhof, airbnb_coordinates) %>% t()
+)
+
 # ---- VISUALS ----
 
 bezirk_colors <- c(

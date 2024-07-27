@@ -482,11 +482,17 @@ If one wants to test if an additional covariable would open backdoors one can us
     )) %>% plot_arrows_on_top()
 ```
 
-We stop building the model step by step at this point and will present the full model used for the regression analysis in the next section.
+The step by step model builing description ends at this point. In the next section the full model used for the regression analysis will be presented.
 
 ## Full model
 
 ## Regression
+
+### Baseline model
+
+
+
+### Full model
 
 # References
 

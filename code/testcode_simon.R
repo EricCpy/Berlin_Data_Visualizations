@@ -832,27 +832,30 @@ summary(lm_votes3)
 
 anova(lm_base, lm_spd1, lm_cdu1, lm_fdp1, lm_grüne1, lm_votes1, lm_votes2, lm_votes3)
 
-#### rents ####
-
-# rent_data <- sf::st_read(dsn = "data/Mieten/") %>% 
+# #### rents ####
+# 
+# rent_data <- sf::st_read(dsn = "data/Mieten/") %>%
 #   st_make_valid(tol = 0.00001) %>% st_transform(4326)
 # 
 # rent_data_with_elect_units <- st_intersection(
-#   elect_units %>% st_transform(9311),
+#   geo_elect_units %>% st_transform(9311),
 #   rent_data %>% st_transform(9311)
 # ) %>% st_transform(4326)
 # 
 # elect_units_with_aggregated_rent_data <- rent_data_with_elect_units %>% mutate(
 #   wol = ordered(wol, levels = c("einfach", "mittel", "gut"))
-# ) %>% 
+# ) %>%
 #   group_by(UWB) %>% summarise(
-#   wohnlage = mean(as.numeric(wol))
+#   wohnlage = median(as.numeric(wol))
 # )
 # 
-# airbnb_with_rent_data <- airbnb_with_elect_units %>% left_join(
-#   elect_units_with_aggregated_rent_data %>% as_tibble(),
-#   by = c("UWB" = "UWB")
-# )
+# airbnb_with_rent_data <- airbnb_election_unit_mapping %>% left_join(
+#   geo_elect_units %>% as_tibble(),
+#   by = c("FID_1" = "FID_1")
+#   ) %>% left_join(
+#     elect_units_with_aggregated_rent_data %>% as_tibble(),
+#     by = c("UWB" = "UWB")
+#   )
 # 
 # # airbnb_rent_distances <- st_distance(rent_data, airbnb_with_lor_units) # takes a long time
 # 
@@ -860,39 +863,34 @@ anova(lm_base, lm_spd1, lm_cdu1, lm_fdp1, lm_grüne1, lm_votes1, lm_votes2, lm_v
 # 
 # knn_df <- rent_data %>% mutate(
 #   long = sf::st_coordinates(.)[,1],
-#   lat = sf::st_coordinates(.)[,2]) %>% 
-#   as_tibble() %>% 
+#   lat = sf::st_coordinates(.)[,2]) %>%
+#   as_tibble() %>%
 #   select(wol, long, lat)
 # 
 # model_knn <- class::knn(
 #   train = knn_df[,c("long", "lat")],
-#   test = airbnb[, c("longitude", "latitude")],
+#   test = df_airbnb[, c("longitude", "latitude")],
 #   cl = knn_df$wol,
 #   k = 3
 #   )
 # 
 # elect_units_with_aggregated_rent_data_median <- rent_data_with_elect_units %>% mutate(
 #   wol = ordered(wol, levels = c("einfach", "mittel", "gut"))
-# ) %>% 
+# ) %>%
 #   group_by(UWB) %>% summarise(
 #     wohnlage = median(as.numeric(wol))
 #   )
 # 
-# airbnb_with_rent_data_median <- airbnb_with_elect_units %>% left_join(
-#   elect_units_with_aggregated_rent_data_median %>% as_tibble(),
-#   by = c("UWB" = "UWB")
-# )
-# 
 # airbnb_with_rent_data_median_knn <- model_knn %>% as_tibble() %>% mutate(
 #   wol = ordered(value, levels = c("einfach", "mittel", "gut")),
 #   knn_wohnlage = as.numeric(wol),
-#   median_wohnlage = airbnb_with_rent_data_median$wohnlage,
-#   price = airbnb_with_rent_data_median$price,
-#   airbnb_id = airbnb_with_rent_data_median$id
+#   median_wohnlage = airbnb_with_rent_data$wohnlage,
+#   airbnb_id = airbnb_with_rent_data$airbnb_id
 #   )
+# 
 # airbnb_with_rent_data_median_knn %>% select(knn_wohnlage, median_wohnlage) %>% table()
-
-airbnb_with_rent_data_median_knn %>% saveRDS("saved_objects/airbnb_with_rent_data_median_knn.rds")
+# 
+# airbnb_with_rent_data_median_knn %>% saveRDS("saved_objects/airbnb_with_rent_data_median_knn.rds")
 airbnb_with_rent_data_median_knn <- readRDS("saved_objects/airbnb_with_rent_data_median_knn.rds")
 
 lm_rents1 <- lm(log(price) ~ wohnlage, data = airbnb_with_rent_data)
@@ -969,6 +967,9 @@ df_airbnb %>% ggplot(
 #### rethinkng #####
 
 library(rethinking)
+library(tidybayes)
+library(tidybayes.rethinking)
+library(modelr)
 
 ##### Simulations #####
 
@@ -1055,7 +1056,283 @@ sim_reputation_only_model %>%
     legend.title.position = "top"
   )
 
-#### ggdag ####
+##### modeling #####
+
+###### base model ######
+dat <- df_airbnb %>% select(log_price)
+
+flist <- alist(
+                log_price ~ dnorm(a, sigma),
+                a <- mu,
+                mu ~ dnorm(4.61, 0.5),
+                sigma ~ dunif( 0 , 1 )
+)
+
+base_model <- ulam(
+  flist, data=dat, 
+  cores = 4, chains = 4
+  )
+precis(base_model)
+post <- extract.samples(base_model , n=1e4)
+post[[1]] %>% exp() %>% density() %>% plot()
+
+base_model %>% spread_draws(mu, ndraws = 1000) %>% 
+  mutate(price = exp(mu)) %>% 
+  ggplot(aes(x = price)) +
+  stat_halfeye(.width = c(.90, .5))
+
+dat %>% 
+  data_grid(1) %>%
+  add_predicted_draws(base_model) %>%
+  mutate(price = exp(.prediction)) %>% 
+  ggplot(aes(x = price)) +
+  stat_slab() +
+  coord_cartesian(xlim = c(0, 250))
+
+###### reputation only ######
+
+dat <- df_airbnb %>% 
+  mutate(bezirk = as.numeric(as.factor(neighbourhood_group_cleansed))) %>% 
+  select(log_price, bezirk)
+
+flist <- alist(
+  log_price ~ dnorm(a, sigma),
+  a <- reputation[bezirk],
+  reputation[bezirk] ~ dnorm(4.61, 0.5),
+  sigma ~ dexp(1)
+)
+
+base_model_reputation <- ulam(
+  flist, data=dat, 
+  cores = 4, chains = 4, iter = 2000
+)
+
+# precis(base_model_reputation, depth = 2)
+summary(base_model_reputation)
+coef(base_model_reputation) %>% names()
+
+bezirk_levels <- df_airbnb %>% 
+  transmute(bezirk = as.factor(neighbourhood_group_cleansed)) %>% 
+  pull() %>% levels()
+
+base_model_reputation %>% spread_draws(reputation[bezirk], ndraws = 1000) %>% 
+  mutate(bezirk = bezirk_levels[bezirk], price = exp(reputation)) %>% 
+  ggplot(aes(y = bezirk, x = price)) +
+  stat_halfeye(.width = c(.90, .5))
+
+base_model_reputation %>% spread_draws(reputation[bezirk], ndraws = 1000) %>% 
+  mutate(bezirk = bezirk_levels[bezirk], price = exp(reputation)) %>% 
+  compare_levels(price, by = bezirk) %>%
+  ggplot(aes(y = bezirk, x = price, fill = stat(abs(x) < 5))) +
+  stat_halfeye(.width = c(.90, .5)) +
+  geom_vline(xintercept = c(-5, 5), linetype = "dashed") +
+  scale_fill_manual(values = c("gray80", "skyblue"))
+
+dat %>% 
+  data_grid(bezirk) %>%
+  add_predicted_draws(base_model_reputation) %>%
+  mutate(bezirk = bezirk_levels[bezirk], price = exp(.prediction)) %>% 
+  ggplot(aes(x = price, y = bezirk)) +
+  stat_slab() +
+  coord_cartesian(xlim = c(0, 250))
+
+dat %>% 
+  data_grid(bezirk) %>%
+  add_predicted_draws(base_model_reputation) %>%
+  mutate(bezirk = bezirk_levels[bezirk], price = exp(.prediction)) %>% 
+  compare_levels(price, by = bezirk) %>%
+  ggplot(aes(x = price, y = bezirk, fill = stat(abs(x) < 5))) +
+  stat_slab() +
+  # stat_halfeye(.width = c(.90, .5)) +
+  geom_vline(xintercept = c(-5, 5), linetype = "dashed") +
+  scale_fill_manual(values = c("gray80", "skyblue")) +
+  xlim(c(-100, 100))
+
+###### With Wohnlage ######
+
+dat <- df_airbnb %>% 
+  left_join(
+    airbnb_with_rent_data_median_knn,
+    by = c("id"  = "airbnb_id")
+  ) %>% 
+  mutate(
+    bezirk = as.numeric(as.factor(neighbourhood_group_cleansed)),
+    median_wohnlage = round(median_wohnlage)
+    ) %>% 
+  select(log_price, bezirk, median_wohnlage)
+
+# wohnlagen_levels <- airbnb_with_rent_data_median_knn %>% 
+#   transmute(wohnlage = as.factor(median_wohnlage)) %>% 
+#   pull() %>% levels()
+
+flist <- alist(
+  log_price ~ dnorm(a, sigma),
+  a <- reputation[bezirk] + bE*sum(delta[1:median_wohnlage]),
+  reputation[bezirk] ~ dnorm(4.61, 0.5),
+  bE ~ dnorm(0, 0.5),
+  # vector[3]: delta_j <<- append_row( 0 , delta ),
+  simplex[3]: delta ~ dirichlet( alpha ),
+  sigma ~ dexp(1)
+)
+
+dat2 <- list(
+  alpha = rep(2, 3),
+  median_wohnlage = as.integer(dat$median_wohnlage),
+  bezirk = dat$bezirk,
+  log_price = dat$log_price
+)
+
+base_model_reputation_wohnlage_broken <- ulam(
+  flist, data=dat2, 
+  cores = 4, chains = 4, iter = 2000
+)
+
+summary(base_model_reputation_wohnlage)
+summary(base_model_reputation_wohnlage_broken)
+
+base_model_reputation_wohnlage %>% spread_draws(reputation[bezirk], ndraws = 1000) %>% 
+  mutate(bezirk = bezirk_levels[bezirk], price = exp(reputation)) %>% 
+  ggplot(aes(y = bezirk, x = price)) +
+  stat_halfeye(.width = c(.90, .5))
+
+base_model_reputation_wohnlage %>% spread_draws(reputation[bezirk], bE, delta[wohnlage], ndraws = 1000) %>% 
+  mutate(bezirk = bezirk_levels[bezirk]) %>% 
+  pivot_wider(names_from = wohnlage, names_prefix = "wol_", values_from = delta) %>% 
+  mutate(
+    price_wol_1 = reputation+bE*(wol_1),
+    price_wol_2 = reputation+bE*(wol_1+wol_2),
+    price_wol_3 = reputation+bE*(wol_1+wol_2+wol_3)
+  ) %>% pivot_longer(cols = starts_with("price_wol")) %>% 
+  mutate(price = exp(value)) %>% 
+  ggplot(aes(x = price, y = bezirk)) +
+  stat_slab() +
+  facet_wrap(~name)
+
+# base_model_reputation_wohnlage_broken %>% spread_draws(reputation[bezirk], bE, delta[wohnlage], ndraws = 1000) %>% 
+#   mutate(bezirk = bezirk_levels[bezirk]) %>% 
+#   pivot_wider(names_from = wohnlage, names_prefix = "wol_", values_from = delta) %>% 
+#   mutate(
+#     price_wol_1 = reputation,
+#     price_wol_2 = reputation+bE*(wol_1),
+#     price_wol_3 = reputation+bE*(wol_1+wol_2)
+#   ) %>% pivot_longer(cols = starts_with("price_wol")) %>% 
+#   mutate(price = exp(value)) %>% 
+#   ggplot(aes(x = price, y = bezirk)) +
+#   stat_slab() +
+#   facet_wrap(~name)
+# 
+# base_model_reputation_wohnlage %>% spread_draws(reputation[bezirk], bE, delta[wohnlage], ndraws = 1000) %>% 
+#   mutate(bezirk = bezirk_levels[bezirk]) %>% 
+#   pivot_wider(names_from = wohnlage, names_prefix = "wol_", values_from = delta) %>% 
+#   mutate(
+#     price_wol_1 = reputation+bE*(wol_1),
+#     price_wol_2 = reputation+bE*(wol_1+wol_2),
+#     price_wol_3 = reputation+bE*(wol_1+wol_2+wol_3)
+#   ) %>% pivot_longer(cols = starts_with("price_wol")) %>% 
+#   mutate(price = exp(value), n_simplex = 3) %>% 
+#   bind_rows(
+#     base_model_reputation_wohnlage_broken %>% spread_draws(reputation[bezirk], bE, delta[wohnlage], ndraws = 1000) %>% 
+#       mutate(bezirk = bezirk_levels[bezirk]) %>% 
+#       pivot_wider(names_from = wohnlage, names_prefix = "wol_", values_from = delta) %>% 
+#       mutate(
+#         price_wol_1 = reputation,
+#         price_wol_2 = reputation+bE*(wol_1),
+#         price_wol_3 = reputation+bE*(wol_1+wol_2)
+#       ) %>% pivot_longer(cols = starts_with("price_wol")) %>% 
+#       mutate(price = exp(value), n_simplex = 2)
+#   ) %>% 
+#   ggplot(aes(x = price, y = bezirk, fill = factor(n_simplex))) +
+#   stat_slab(alpha = .5) +
+#   facet_wrap(~name)
+
+base_model_reputation_wohnlage %>% spread_draws(reputation[bezirk], bE, delta[wohnlage], ndraws = 1000) %>% 
+  mutate(bezirk = bezirk_levels[bezirk]) %>% 
+  pivot_wider(names_from = wohnlage, names_prefix = "wol_", values_from = delta) %>% 
+  mutate(
+    price_wol_1 = reputation+bE*(wol_1),
+    price_wol_2 = reputation+bE*(wol_1+wol_2),
+    price_wol_3 = reputation+bE*(wol_1+wol_2+wol_3)
+  ) %>% pivot_longer(cols = starts_with("price_wol")) %>% 
+  mutate(price = exp(value)) %>% 
+  compare_levels(price, by = name) %>% 
+  ggplot(aes(x = price, y = name, fill = stat(abs(x) > 5))) +
+  stat_slab() +
+  # stat_halfeye(.width = c(.90, .5)) +
+  geom_vline(xintercept = c(-5, 5), linetype = "dashed") +
+  scale_fill_manual(values = c("gray80", "skyblue"))
+
+# broken
+base_model_reputation_wohnlage %>% spread_draws(reputation[bezirk], bE, delta[wohnlage], ndraws = 1000) %>% 
+  mutate(bezirk = bezirk_levels[bezirk]) %>% 
+  pivot_wider(names_from = wohnlage, names_prefix = "wol_", values_from = delta) %>% 
+  mutate(
+    price_wol_1 = reputation+bE*(wol_1),
+    price_wol_2 = reputation+bE*(wol_1+wol_2),
+    price_wol_3 = reputation+bE*(wol_1+wol_2+wol_3)
+  ) %>% pivot_longer(cols = starts_with("price_wol")) %>% 
+  mutate(price = exp(value)) %>%
+  select(bezirk, price, name, .draw) %>% 
+  pivot_wider(names_from = bezirk, values_from = price)
+  # compare_levels(price, by = bezirk)
+
+# dat %>%
+#   data_grid(bezirk, median_wohnlage) %>%
+#   add_predicted_draws(base_model_reputation_wohnlage) %>%
+#   mutate(
+#     bezirk = bezirk_levels[bezirk], 
+#     wohnlage = wohnlagen_levels[median_wohnlage],
+#     price = .prediction
+#     ) %>%
+#   ggplot(aes(x = price, y = bezirk)) +
+#   stat_slab() +
+#   # coord_cartesian(xlim = c(0, 250)) +
+#   facet_wrap(~median_wohnlage)
+
+append_row <- function(a, b) {
+  cbind(0, b)
+}
+
+sim(base_model_reputation_wohnlage) %>% dens()
+link(base_model_reputation_wohnlage) %>% dens()
+rethinking::sim(base_model_reputation_wohnlage) %>% as.numeric() %>% dens()
+extract.samples(base_model_reputation_wohnlage) %>% as_tibble()
+
+###
+
+data(Trolley)
+d <- Trolley %>% sample_n(1000)
+edu_levels <- c( 6 , 1 , 8 , 4 , 7 , 2 , 5 , 3 )
+d$edu_new <- edu_levels[ d$edu ]
+
+dat <- list(
+             R = d$response ,
+             action = d$action,
+             intention = d$intention,
+             contact = d$contact,
+             E = as.integer( d$edu_new ), # edu_new as an index
+             alpha = rep( 2 , 8 ) ) # delta prior
+
+m12.6 <- ulam(
+  alist(
+    R ~ ordered_logistic( phi , kappa ),
+    phi <- bE*sum( delta[1:E] ) + bA*action + bI*intention + bC*contact,
+    kappa ~ normal( 0 , 1.5 ),
+    c(bA,bI,bC,bE) ~ normal( 0 , 1 ),
+    simplex[8]: delta ~ dirichlet( alpha )
+  ), data=dat , chains=4 , cores=4 )
+summary(m12.6)
+sim(m12.6)
+
+dat$edu_norm <- normalize( d$edu_new )
+m12.7 <- ulam(
+  alist(
+    R ~ ordered_logistic( mu , cutpoints ),
+    mu <- bE*edu_norm + bA*action + bI*intention + bC*contact,
+    c(bA,bI,bC,bE) ~ normal( 0 , 1 ),
+    cutpoints ~ normal( 0 , 1.5 )
+  ), data=dat , chains=4 , cores=4 )
+
+#### ggdag #####
 
 dag <- dagify(
   price ~ u + reputation + wohnlage,

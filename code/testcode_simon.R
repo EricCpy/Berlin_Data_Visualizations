@@ -970,6 +970,14 @@ sim_base_model %>%
     ~name, nrow = 3
     )
 
+sim_base_model %>% 
+  pivot_longer(everything()) %>% 
+  ggplot() +
+  geom_density(aes(x = value), fill = "#AACCFF") +
+  facet_wrap(
+    ~name, nrow = 3
+  )
+
 ###### Bezirk reputation ######
 
 n_bezirk <- 12
@@ -1000,3 +1008,110 @@ sim_reputation_only_model %>%
       fill = factor(bezirk)
     )) +
   geom_violin()
+
+#### ggdag ####
+
+dag <- dagify(
+  price ~ u + reputation + wohnlage,
+  reputation ~ wohnlage,
+  latent = c("u"),
+  exposure = "reputation",
+  outcome = "price",
+  labels = c(price = "price", u = "unobserved", reputation = "reputation", wohnlage = "Wohnlage")
+) %>% tidy_dagitty()
+
+ggdag_status(dag, use_labels = "label", text = FALSE) + 
+  theme_dag() +
+  theme(
+    legend.position = "bottom"
+  ) +
+  geom_dag_edges()
+
+tidy_ggdag <- dagify(
+  y ~ x + z2 + w2 + w1,
+  x ~ z1 + w1 + w2,
+  z1 ~ w1 + v,
+  z2 ~ w2 + v,
+  w1 ~ ~w2, # bidirected path
+  exposure = "x",
+  outcome = "y"
+) %>%
+  tidy_dagitty()
+
+g <- ggdag_adjustment_set(tidy_ggdag)
+
+g
+
+tidy_ggdag <- dagify(
+  y ~ z + x + u,
+  x ~ z,
+  u ~ x + m,
+  exposure = "x",
+  outcome = "y"
+) %>%
+  tidy_dagitty()
+
+ggdag_adjustment_set(tidy_ggdag)
+
+dag <- dagify(
+  price ~ u + reputation + wohnlage,
+  reputation ~ wohnlage,
+  review ~ reputation + price,
+  latent = c("u"),
+  exposure = "reputation",
+  outcome = "price",
+  labels = c(price = "price", u = "unobserved", reputation = "reputation", wohnlage = "Wohnlage", review = "review")
+) %>% tidy_dagitty()
+
+(ggdag_adjustment_set(dag, use_labels = "label", text = FALSE) + 
+  theme_dag() +
+  theme(
+    legend.position = "bottom"
+  )) %>% plot_arrows_on_top()
+
+ggdag_collider(dag)
+ggdag_paths_fan(dag, adjust_for = "review", spread = 1)
+
+ggdag_adjust(dag, var = c("wohnlage", "review"))
+
+library(dagitty)
+dag <- dagitty('dag {
+price [outcome,pos="0.638,0.735"]
+rep [exposure,pos="-1.843,0.743"]
+review [selected,pos="-0.300,-0.082"]
+price -> review
+rep -> price
+rep -> review
+}
+')
+
+x <- dag %>% ggdag::tidy_dagitty()
+
+impliedConditionalIndependencies(dag)
+ggdag::ggdag_status(dag)
+
+mosquito_dag <- dagify(
+  malaria_risk ~ net + income + health + temperature + resistance,
+  net ~ income + health + temperature + eligible + household,
+  eligible ~ income + household,
+  health ~ income,
+  exposure = "net",
+  outcome = "malaria_risk",
+  coords = list(x = c(malaria_risk = 7, net = 3, income = 4, health = 5,
+                      temperature = 6, resistance = 8.5, eligible = 2, household = 1),
+                y = c(malaria_risk = 2, net = 2, income = 3, health = 1,
+                      temperature = 3, resistance = 2, eligible = 3, household = 2)),
+  labels = c(malaria_risk = "Risk of malaria", net = "Mosquito net", income = "Income",
+             health = "Health", temperature = "Nighttime temperatures", 
+             resistance = "Insecticide resistance",
+             eligible = "Eligible for program", household = "Number in household")
+)
+
+ggdag_status(mosquito_dag, use_labels = "label", text = FALSE) + 
+  guides(fill = FALSE, color = FALSE) +  # Disable the legend
+  theme_dag()
+
+ggdag_adjustment_set(mosquito_dag, shadow = T,
+                     use_labels = "label", text = FALSE) +
+  theme_dag()
+

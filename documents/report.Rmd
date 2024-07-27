@@ -36,13 +36,14 @@ Examining the factors influencing Airbnb characteristics, such as prices, is par
 
 ## Objectives
 
-1. Number of airbnbs by Bezirk + Overview of the airbnb data (Florian)
-2. Impact of a number of airbnbs on price + Overview (Pavlo)
-3. Impact of additional data on airbnb price + Overview for additional data (Simon)
+1. Number of Airbnbs by Bezirk + Overview of the Airbnb data (Florian)
+2. Impact of a number of Airbnbs on price + Overview (Pavlo)
+3. Influence of *Bezirk* reputation on price (Simon)
+1. Impact of additional data on Airbnb price + Overview for additional data (Simon)
+5. Compare price to amenities and attributes in detailed listings dataset, e.g. analyse amenities in different regions (Simon)
 4. Wordcloud of names and Sentiment analysis of titles of reviews, regress to price, bezirk (Eric)
-5. Compare price to amenities and attributes in sdetailed listings dataset, e.g. analyse amenities in different regions (Simon) 
 
-## AirBNB map
+## Airbnb map
 
 ```{r airbnb-map-ggplot, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Map with ggplot", fig.align='center'}
 geo_elect_units %>% 
@@ -85,7 +86,7 @@ plot_ly() %>%
     text = ~str_c(price, " €"),
     hoverinfo='text',
     alpha = 0.3,
-    name = 'airBNB'
+    name = 'Airbnb'
   ) %>% layout(
     legend=list(
       x=0,
@@ -105,12 +106,12 @@ q75_reinickendorf <- df_airbnb %>% filter(neighbourhood_group_cleansed == "Reini
   pull(price) %>% quantile(.75)
 ```
 
-We want to estimate the influence of the reputation for each *Bezirk* might have on the price for a night. A first comparison of the median or mean prices per *Bezirk* suggest that there might be some meaningful difference to investigate on (see Table \@ref(tab:airbnb-price-by-bezirk-table)). To stay a night in *Mitte* seems to be twice as expensive as staying in *Reinickendorf*.
+We want to estimate the influence of the reputation for each *Bezirk* might have on the price for a night^[Probably the division by *Bezirk* is too rough. A divison into *Kietz* might be more promising to find some meaningful effects.]. A first comparison of the median or mean prices per *Bezirk* suggest that there might be some meaningful difference to investigate on (see Table \@ref(tab:airbnb-price-by-bezirk-table)). To stay a night in *Mitte* seems to be twice as expensive as staying in *Reinickendorf*.
 
 ```{r airbnb-price-by-bezirk-table, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, results="asis"}
 df_airbnb %>% rename(Bezirk = neighbourhood_group_cleansed) %>% 
   group_by(Bezirk) %>% 
-  summarise("mean price" = mean(price), "median price" = median(price), "#airBNBs" = n()) %>% 
+  summarise("mean price" = mean(price), "median price" = median(price), "#Airbnbs" = n()) %>% 
   datatable(options = list(
     info = FALSE,
     paging = FALSE,
@@ -128,14 +129,14 @@ cat(
   "<table>", 
   paste0("<caption>",
          "(#tab:airbnb-price-by-bezirk-table)",
-         "Median and mean prices for airBNBs per night by Bezirk as well as number of airBNBs in each Bezirk.",
+         "Median and mean prices for Airbnbs per night by Bezirk as well as number of Airbnbs in each Bezirk.",
          "</caption>"),
   "</table>", 
   sep ="\n"
   )
 ```
 
-Figure \@ref(fig:airbnb-price-by-bezirk) shows the price for a night at airBNBs per *Bezirk*. As was already pointed out the prices have a long tail to higher prices. For the 25 % quantile for *Mitte* we find a value of `r q25_mitte` and for the 75 % quantile for Reinickendorf a value of `r q75_reinickendorf`. Thus the boxpots show almost no overlap.
+Figure \@ref(fig:airbnb-price-by-bezirk) shows the price for a night at Airbnbs per *Bezirk*. As was already pointed out the prices have a long tail to higher prices. For the 25 % quantile for *Mitte* we find a value of `r q25_mitte` and for the 75 % quantile for Reinickendorf a value of `r q75_reinickendorf`. Thus the boxpots show almost no overlap.
 
 ```{r airbnb-price-by-bezirk, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Showing the distribution of the price per Bezirk. Dashed line shows the 25 % quantile for Mitte and the 75 % quantile for Reinickendorf which are very close.", fig.align='center', fig.dim = c(8, 6)}
 df_airbnb %>% ggplot(
@@ -158,7 +159,7 @@ df_airbnb %>% ggplot(
   geom_vline(xintercept = q75_reinickendorf, lty = 2, color = "black")
 ```
 
-Figure \@ref(fig:airbnb-logprice-by-bezirk) shows the price for a night at airBNBs per Bezirk on the log scale. For the remainder of this section we will use the logarithm of the airBNB prices. Most of the price distribuitions look pretty similar. Nevertheless, we will investigate if we can find an effect on the airBNB prices by something we model as *Bezirk* reputation.
+Figure \@ref(fig:airbnb-logprice-by-bezirk) shows the price for a night at Airbnbs per Bezirk on the log scale. For the remainder of this section we will use the logarithm of the Airbnb prices. Most of the price distribuitions look pretty similar. Nevertheless, we will investigate if we can find an effect on the Airbnb prices by something we model as *Bezirk* reputation.
 
 ```{r airbnb-logprice-by-bezirk, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Showing the distribution of the logarithm of the price per Bezirk. Dashed line shows the 25 % quantile for Mitte and the 75 % quantile for Reinickendorf which are very close.", fig.align='center', fig.dim = c(8, 8)}
 df_airbnb %>% ggplot(
@@ -187,52 +188,20 @@ n <- 6306
 mean <- log(100)
 sd <- 0.5
 
+sample_mu <- rnorm(n, mean, sd)
+sample_sigma <- runif(n, 0, 1)
+prior_h <- rnorm( n , sample_mu , sample_sigma )
+
 sim_base_model <- tibble(
-  sim_base = rnorm(n, mean, sd),
+  sim_base_point_prior = rnorm(n, mean, sd),
+  sim_base_distr_prior = prior_h,
   original = df_airbnb$log_price
 )
-
-sim_base_model %>% 
-  pivot_longer(everything()) %>% 
-  ggplot() +
-  geom_histogram(aes(x = value)) +
-  facet_wrap(
-    ~name, nrow = 2
-    )
-
-n_bezirk <- 12
-bezirke <- sample(1:12, n, replace = TRUE)
-b_bezirk_reputation <- rnorm(12, 0, 0.5)
-
-sim_reputation_only_model <- tibble(
-  bezirk = bezirke,
-  original = df_airbnb$log_price
-) %>% mutate(
-  sim_reputation = rnorm(n, mean + b_bezirk_reputation[bezirk], sd)
-)
-
-sim_reputation_only_model %>% 
-  pivot_longer(-bezirk) %>% 
-  ggplot() +
-  geom_histogram(aes(x = value)) +
-  facet_wrap(
-    ~name, nrow = 2
-  )
-
-sim_reputation_only_model %>% 
-  select(-original) %>% 
-  ggplot(
-    aes(
-      x = sim_reputation,
-      y = bezirk,
-      fill = factor(bezirk)
-    )) +
-  geom_violin()
 ```
 
-Following @mcelreath_statistical_2020 book on bayesian statistics we start by specify two base models and simulate data from those to compare it with the real data. Simulating data and comparing it to real data is a good possibility to get a feeling for plausible priors.
+Following @mcelreath_statistical_2020 book on bayesian statistics we start by specify two base models and simulate data from those to compare it with the real data. Simulating data and comparing it to real data is a good possibility to get a feeling for plausible priors [@mcelreath_statistical_2020, p. 85].
 
-The most basic model possible assumes that the price just follows a given distribution (e.g. normal distribution). This is probably not correct. An equal approach on simulation comes from a model where we believe that the price is dependent on some variables but those variables were not measured. The corresponding DAG is shown in Figure \@ref(fig:dag-base-model).
+The most basic model possible assumes that the price just follows a given distribution (e.g. normal distribution) and that there are no influences on price. This is probably not correct. An equal approach on simulation comes from a model where we believe that the price is dependent on some variables but those variables were not measured. The corresponding DAG is shown in Figure \@ref(fig:dag-base-model).
 
 ```{r dag-base-model, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="DAG for most basic model", fig.align='center', fig.dim = c(4, 4)}
 dag <- dagify(
@@ -242,11 +211,11 @@ dag <- dagify(
   labels = c(price = "price", u = "unobserved")
 ) %>% tidy_dagitty()
 
-ggdag_status(dag, use_labels = "label", text = FALSE) + 
+(ggdag_status(dag, use_labels = "label", text = FALSE) + 
   theme_dag() +
   theme(
     legend.position = "bottom"
-  )
+  )) %>% plot_arrows_on_top()
 ```
 
 As starting values for the base model a mean price of 100 € was chosen. This corresponds to a value of `r log(100)` on the log scale. As standard deviation \(0.5\) was chosen. The statistical model is shown in Equation \@ref(eq:base-model). 
@@ -267,9 +236,44 @@ log(price) \sim Normal(\mu, \sigma) \\
 (\#eq:base-model-bayesian)
 \end{equation} 
 
-Since in the bayesian model \@ref(eq:base-model-bayesian) \mu and \sigma vary we find the simulated price range to be wider compared with the simulations from the frequentist model \@ref(eq:base-model).
+Since in the bayesian model \@ref(eq:base-model-bayesian) \mu and \sigma vary we find the simulated price range to be wider compared with the simulations from the frequentist model \@ref(eq:base-model). The results can be seen in Figure \@ref(fig:price-distribution-simulated). By accident the choice for the standard deviation produced a simulated distribution that is almost as wide as the real data for the baysian prior. For the frequentist prior the simulated distribution is even narrower and thus the prior standard deviation might be a little bit larger to allow some other plausible solutions. 
 
-Note, that the DAG shown in Figure \@ref(fig:dag-base-model) is corresponding to both equations. The important role of DAGs is not to define an exact statistic model but to show the beliefs about causual effects that generate the real data. It is benefitial to create a graphical represenation of the assumed casual model to select which covariables to include in the statistical model. In a DAG one can identify fork-, pipe- or collider-constallations and identify backdoor paths. Which covariable to include or exclude depends on the effect one tries to estimate (to investigate a hypothesis).
+```{r price-distribution-simulated, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Distribution of prices on the log scale for real data and data simulated from priors", fig.align='center'}
+sim_base_model %>% 
+  pivot_longer(everything()) %>% 
+  mutate(
+    name = factor(
+      name, 
+      levels = c("original", "sim_base_point_prior", "sim_base_distr_prior"), 
+      labels = c("original data", "simulated data frequentist", "simulated data bayesian")
+      )) %>% 
+  ggplot() +
+  geom_density(aes(x = value), fill = "#AACCFF") +
+  facet_wrap(
+    ~name, nrow = 3
+    ) +
+  xlab("log(price")
+```
+
+Note, that the DAG shown in Figure \@ref(fig:dag-base-model) is corresponding to both equations. The important role of DAGs is not to define an exact statistic model but to show the beliefs about causual effects that generate the real data. It is benefitial to create a graphical represenation of the assumed casual model to select which covariables to include in the statistical model. In a DAG one can identify e.g. fork-, pipe- or collider-constallations and identify backdoor paths. Which covariable to include or exclude depends on the effect one tries to estimate (to investigate a hypothesis).
+
+Since the goal is to estimate a possible influence of the *Bezirk* reputation it should be included in the DAG explicitly. Since there is no measurement of the *Bezirk* reputation (e.g. from a conducted survey) it is an unobserved (latent) variable. Because *Bezirk* reputation is target for our investigation we will declare it as our exposure (treatment). Moving a Airbnb from one *Bezirk* to another physically is difficult^[Probably the *Bezirk* borders won't change in near future as well. But they do rarely.]. So it might be hard to think of *Bezirk* reputation as the treatment. But using the posterior the effect of changing the district can be calculated easily. Figure \@ref(fig:dag-reputation-only-model) shows the corresponding DAG.
+
+```{r dag-reputation-only-model, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="DAG for most basic model", fig.align='center', fig.dim = c(4, 4)}
+dag <- dagify(
+  price ~ u + reputation,
+  latent = c("u"),
+  exposure = "reputation",
+  outcome = "price",
+  labels = c(price = "price", u = "unobserved", reputation = "reputation")
+) %>% tidy_dagitty()
+
+(ggdag_status(dag, use_labels = "label", text = FALSE) + 
+  theme_dag() +
+  theme(
+    legend.position = "bottom"
+  )) %>% plot_arrows_on_top()
+```
 
 \begin{equation} 
 log(price) \sim Normal(\mu, \sigma) \\
@@ -277,35 +281,55 @@ log(price) \sim Normal(\mu, \sigma) \\
 (\#eq:base-model)
 \end{equation} 
 
-```{r dag-reputation-only-model, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="DAG for most basic model", fig.align='center', fig.dim = c(4, 4)}
+A possible variable to include in our model is the quality of residental area (*Wohnlage*) [@noauthor_wohnlagen_2024]. A high amount good *Wohnlage* in a *Bezirk* might influence its reputation. It might influence the rent or purchuse price of a flat used as Airbnb as well. So the host has to ask for higher payment per night to compensate the rent or loan installment he has to pay and maybe wants to profit by a possible good reputation of the *Bezirk*to increase his income a little more.
+
+In \@ref(fig:dag-reputation-model-wohnlage) one can see a model with *Wohnlage* added as a covariable. Since *Wohnlage* influences reputation as well as price there is fork pattern. *Wohnlage* is a classical confounder [@mcelreath_statistical_2020, p. 189].
+
+```{r dag-reputation-model-wohnlage, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="DAG for most basic model", fig.align='center', fig.dim = c(4, 4)}
 dag <- dagify(
-  price ~ u + reputation,
-  latent = c("u", "reputation"),
+  price ~ u + reputation + wohnlage,
+  reputation ~ wohnlage,
+  latent = c("u"),
+  exposure = "reputation",
   outcome = "price",
-  labels = c(price = "price", u = "unobserved", reputation = "reputation")
+  labels = c(price = "price", u = "unobserved", reputation = "reputation", wohnlage = "Wohnlage")
 ) %>% tidy_dagitty()
 
-ggdag_status(dag, use_labels = "label", text = FALSE) + 
+(ggdag_status(dag, use_labels = "label", text = FALSE) + 
   theme_dag() +
   theme(
     legend.position = "bottom"
-  )
+  )) %>% plot_arrows_on_top()
+
+(ggdag_adjustment_set(dag, use_labels = "label", text = FALSE, shadow = T) + 
+  theme_dag() +
+  theme(
+    legend.position = "bottom"
+  )) %>% plot_arrows_on_top()
 ```
 
-```{r dag-reputation-only-model-backdoor, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="DAG for most basic model", fig.align='center', fig.dim = c(4, 4)}
+```{r dag-reputation-model-wohnlage-reviews, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="DAG for most basic model", fig.align='center', fig.dim = c(4, 4)}
 dag <- dagify(
-  price ~ u + reputation,
-  reputation ~ u,
-  latent = c("u", "reputation"),
+  price ~ u + reputation + wohnlage,
+  reputation ~ wohnlage,
+  review ~ reputation + price,
+  latent = c("u"),
+  exposure = "reputation",
   outcome = "price",
-  labels = c(price = "price", u = "unobserved", reputation = "reputation")
+  labels = c(price = "price", u = "unobserved", reputation = "reputation", wohnlage = "Wohnlage", review = "review")
 ) %>% tidy_dagitty()
 
-ggdag_status(dag, use_labels = "label", text = FALSE) + 
+(ggdag_status(dag, use_labels = "label", text = FALSE) + 
   theme_dag() +
   theme(
     legend.position = "bottom"
-  )
+  )) %>% plot_arrows_on_top()
+
+(ggdag_adjustment_set(dag, use_labels = "label", text = FALSE, shadow = T) + 
+  theme_dag() +
+  theme(
+    legend.position = "bottom"
+  )) %>% plot_arrows_on_top()
 ```
 
 # References
@@ -316,10 +340,10 @@ ggdag_status(dag, use_labels = "label", text = FALSE) +
 
 ## Sources for inspiration
 
-* [Scientific article on Berlin rents](https://link.springer.com/article/10.1007/s11943-024-00340-6): will we find similar effects for AirBNB rents?
-* [Berlin Rents kaggle report](https://www.kaggle.com/code/gurjeet123/berlin-rent-insights): Are animals a price factor for AirBNB?
-* [AirBNB repot on tableau](https://public.tableau.com/app/profile/ritik.mishra/viz/DataAnalysisofRentalPricesinBerlin/AirBnBBerlin?publish=yes): I think we can do better
-* [AirBNB Berlin automated report for our base data set](https://insideairbnb.com/berlin/)
+* [Scientific article on Berlin rents](https://link.springer.com/article/10.1007/s11943-024-00340-6): will we find similar effects for  rents?
+* [Berlin Rents kaggle report](https://www.kaggle.com/code/gurjeet123/berlin-rent-insights): Are animals a price factor for Airbnb?
+* [Airbnb repot on tableau](https://public.tableau.com/app/profile/ritik.mishra/viz/DataAnalysisofRentalPricesinBerlin/AirBnBBerlin?publish=yes): I think we can do better
+* [Airbnb Berlin automated report for our base data set](https://insideairbnb.com/berlin/)
 
 ### Interactive graphs
 

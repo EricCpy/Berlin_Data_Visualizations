@@ -3,6 +3,8 @@ library(sf)
 library(plotly)
 library(DT)
 library(ggdag)
+library(reshape2)
+library(gridExtra)
 
 source("code/helper_functions.R")
 source("code/data_etl.R")

@@ -66,4 +66,5 @@ documents/2024 - rent prices in Berlin.pdf
 # large files > 100Mb
 data/airbnb/March_2024/reviews.csv
 data/airbnb/March_2024/reviews.csv
+data/airbnb/March_2024/review_sentiments_languages.csv
 /data/Mieten

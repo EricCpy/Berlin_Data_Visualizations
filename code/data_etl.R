@@ -50,7 +50,7 @@ df_airbnb <- df_listings_cleaned_with_review_sentiment %>%
     price, log_price,
     neighbourhood_group_cleansed, neighbourhood_cleansed,
     latitude, longitude,
-    property_type,
+    room_type,
     minimum_nights, availability_365,
     accommodates, bedrooms, beds,
     bathrooms, bathrooms_text,
@@ -263,20 +263,26 @@ opnv_stations_no_tram_berlin <- opnv_stations %>%
   )
 
 # # ---- DISTANCES ----
-# 
-# #### OPNV ####
-# 
+
+#### OPNV ####
+
 # airbnb_opnv_distances <- st_distance(opnv_stations_no_tram_berlin, airbnb_coordinates)
-# df_airbnb <- df_airbnb %>% bind_cols(
-#   distance_opnv = apply(airbnb_opnv_distances, 2, min)
-#   )
-# 
-# #### toilets ####
-# 
+# saveRDS(airbnb_opnv_distances, "saved_objects/airbnb_opnv_distances.rds")
+
+airbnb_opnv_distances <- readRDS("saved_objects/airbnb_opnv_distances.rds")
+df_airbnb <- df_airbnb %>% bind_cols(
+  distance_opnv = apply(airbnb_opnv_distances, 2, min)
+  )
+
+#### toilets ####
+
 # airbnb_toilet_distances <- st_distance(toilet_coordinates, airbnb_coordinates)
-# df_airbnb <- df_airbnb %>% bind_cols(
-#   distance_toilet = apply(airbnb_toilet_distances, 2, min)
-# )
+# saveRDS(airbnb_toilet_distances, "saved_objects/airbnb_toilet_distances.rds")
+
+airbnb_toilet_distances <- readRDS("saved_objects/airbnb_toilet_distances.rds")
+df_airbnb <- df_airbnb %>% bind_cols(
+  distance_toilet = apply(airbnb_toilet_distances, 2, min)
+)
 
 #### Hauptbahnhof ####
 
@@ -288,6 +294,32 @@ coords_hauptbahnhof <- tribble(
 
 df_airbnb <- df_airbnb %>% bind_cols(
   distance_hauptbahnhof = st_distance(coords_hauptbahnhof, airbnb_coordinates) %>% t()
+)
+
+#---- combining in df_airbnb2 ----
+
+df_airbnb2 <- df_airbnb %>% left_join(
+  airbnb_with_rent_data_median_knn,
+  by = c("id"  = "airbnb_id")
+) %>% left_join(
+  airbnb_lor_mapping,
+  by = c("id" = "airbnb_id")
+) %>% left_join(
+  airbnb_election_unit_mapping,
+  by = c("id" = "airbnb_id")
+) %>% mutate(BZR_ID = str_sub(PLR_ID, 1, 6)) %>% 
+  left_join(
+  crime_rate %>% rename(
+    LOR_ID = `LOR-Schlüssel (Bezirksregion)`,
+    Straftaten_total = `Straftaten \r\n-insgesamt-`
+    ),
+  by = c("BZR_ID" = "LOR_ID")
+) %>% left_join(
+  traffic_accidents %>% rename(n_traffic_accidents = count),
+  by = c("PLR_ID" = "PLR_ID")
+) %>% left_join(
+  gigabit_supply %>% transmute(LOR_ID = `LOR\r\nPlanungsräume\r\nNummer`, gigabit_supply_2024 = `Anteil (%)...6`),
+  by = c("PLR_ID" = "LOR_ID")
 )
 
 # ---- VISUALS ----
@@ -306,3 +338,115 @@ bezirk_colors <- c(
   "#ffff99",
   "#b15928"
 )
+
+# ---- DAGs ----
+
+full_dag <- dagitty::dagitty('dag {
+bb="0,0,1,1"
+... [pos="0.810,0.447"]
+TV [pos="0.827,0.497"]
+accommodates [pos="0.206,0.350"]
+amenities [pos="0.648,0.515"]
+bathrooms [pos="0.513,0.407"]
+bedrooms [pos="0.434,0.377"]
+beds [pos="0.329,0.350"]
+crime_rate [pos="0.137,0.819"]
+distance_hauptbahnhof [pos="0.614,0.729"]
+distance_opnv [pos="0.524,0.785"]
+distance_toilets [pos="0.419,0.811"]
+gigbit_supply [pos="0.753,0.631"]
+kitchen [pos="0.600,0.455"]
+oven [pos="0.738,0.433"]
+price [outcome,pos="0.249,0.580"]
+property_type [pos="0.119,0.410"]
+reputation [exposure,pos="0.047,0.581"]
+reviews [pos="0.137,0.523"]
+traffic_accidents [pos="0.268,0.830"]
+unobserved [latent,pos="0.858,0.594"]
+wifi [pos="0.771,0.532"]
+wohnlage [pos="0.147,0.628"]
+... -> amenities
+TV -> amenities
+accommodates -> beds
+accommodates -> price
+amenities -> price
+bathrooms -> price
+bedrooms -> beds
+bedrooms -> price
+beds -> price
+crime_rate -> reputation
+distance_hauptbahnhof -> price
+distance_opnv -> distance_hauptbahnhof
+distance_opnv -> price
+distance_toilets -> price
+gigbit_supply -> price
+gigbit_supply -> wifi
+kitchen -> oven
+kitchen -> price
+oven -> amenities
+price -> reviews
+property_type -> price
+reputation -> price
+reputation -> reviews
+traffic_accidents -> price
+unobserved -> price
+wifi -> amenities
+wohnlage -> crime_rate
+wohnlage -> price
+wohnlage -> reputation
+}')
+
+full_dag_adjusted <- dagitty::dagitty('dag {
+bb="0,0,1,1"
+... [adjusted,pos="0.810,0.447"]
+TV [adjusted,pos="0.827,0.497"]
+accommodates [adjusted,pos="0.206,0.350"]
+amenities [adjusted,pos="0.648,0.515"]
+bathrooms [adjusted,pos="0.513,0.407"]
+bedrooms [adjusted,pos="0.434,0.377"]
+beds [adjusted,pos="0.329,0.350"]
+crime_rate [pos="0.137,0.819"]
+distance_hauptbahnhof [adjusted,pos="0.614,0.729"]
+distance_opnv [adjusted,pos="0.524,0.785"]
+distance_toilets [adjusted,pos="0.419,0.811"]
+gigbit_supply [adjusted,pos="0.753,0.631"]
+kitchen [adjusted,pos="0.600,0.455"]
+oven [adjusted,pos="0.738,0.433"]
+price [outcome,pos="0.249,0.580"]
+property_type [adjusted,pos="0.119,0.410"]
+reputation [exposure,pos="0.047,0.581"]
+reviews [pos="0.137,0.523"]
+traffic_accidents [adjusted,pos="0.268,0.830"]
+unobserved [latent,pos="0.858,0.594"]
+wifi [adjusted,pos="0.771,0.532"]
+wohnlage [adjusted,pos="0.147,0.628"]
+... -> amenities
+TV -> amenities
+accommodates -> beds
+accommodates -> price
+amenities -> price
+bathrooms -> price
+bedrooms -> beds
+bedrooms -> price
+beds -> price
+crime_rate -> reputation
+distance_hauptbahnhof -> price
+distance_opnv -> distance_hauptbahnhof
+distance_opnv -> price
+distance_toilets -> price
+gigbit_supply -> price
+gigbit_supply -> wifi
+kitchen -> oven
+kitchen -> price
+oven -> amenities
+price -> reviews
+property_type -> price
+reputation -> price
+reputation -> reviews
+traffic_accidents -> price
+unobserved -> price
+wifi -> amenities
+wohnlage -> crime_rate
+wohnlage -> price
+wohnlage -> reputation
+}')

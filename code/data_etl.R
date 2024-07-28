@@ -405,7 +405,7 @@ amenities [adjusted,pos="0.648,0.515"]
 bathrooms [adjusted,pos="0.513,0.407"]
 bedrooms [adjusted,pos="0.434,0.377"]
 beds [adjusted,pos="0.329,0.350"]
-crime_rate [adjusted,pos="0.137,0.819"]
+crime_rate [pos="0.137,0.819"]
 distance_hauptbahnhof [adjusted,pos="0.614,0.729"]
 distance_opnv [adjusted,pos="0.524,0.785"]
 distance_toilets [adjusted,pos="0.419,0.811"]
@@ -429,7 +429,6 @@ bathrooms -> price
 bedrooms -> beds
 bedrooms -> price
 beds -> price
-crime_rate -> price
 crime_rate -> reputation
 distance_hauptbahnhof -> price
 distance_opnv -> distance_hauptbahnhof

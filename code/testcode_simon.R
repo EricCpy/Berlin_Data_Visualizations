@@ -969,7 +969,7 @@ df_airbnb %>% ggplot(
 library(rethinking)
 library(tidybayes)
 library(tidybayes.rethinking)
-library(modelr)
+# library(modelr)
 
 ##### Simulations #####
 
@@ -1072,9 +1072,12 @@ base_model <- ulam(
   flist, data=dat, 
   cores = 4, chains = 4
   )
+saveRDS(base_model, "saved_objects/base_model.rds")
+
 precis(base_model)
-post <- extract.samples(base_model , n=1e4)
+post <- extract.samples(base_model , n=1e4) %>% as_tibble() %>% setNames(c("mu", "sigma"))
 post[[1]] %>% exp() %>% density() %>% plot()
+post %>% rowwise() %>% transmute(price = exp(rnorm(1, mu, sigma))) %>% pull() %>% dens()
 
 base_model %>% spread_draws(mu, ndraws = 1000) %>% 
   mutate(price = exp(mu)) %>% 
@@ -1082,7 +1085,7 @@ base_model %>% spread_draws(mu, ndraws = 1000) %>%
   stat_halfeye(.width = c(.90, .5))
 
 dat %>% 
-  data_grid(1) %>%
+  modelr::data_grid(1) %>%
   add_predicted_draws(base_model) %>%
   mutate(price = exp(.prediction)) %>% 
   ggplot(aes(x = price)) +
@@ -1106,6 +1109,7 @@ base_model_reputation <- ulam(
   flist, data=dat, 
   cores = 4, chains = 4, iter = 2000
 )
+saveRDS(base_model_reputation, "saved_objects/base_model_reputation.rds")
 
 # precis(base_model_reputation, depth = 2)
 summary(base_model_reputation)
@@ -1129,7 +1133,7 @@ base_model_reputation %>% spread_draws(reputation[bezirk], ndraws = 1000) %>%
   scale_fill_manual(values = c("gray80", "skyblue"))
 
 dat %>% 
-  data_grid(bezirk) %>%
+  modelr::data_grid(bezirk) %>%
   add_predicted_draws(base_model_reputation) %>%
   mutate(bezirk = bezirk_levels[bezirk], price = exp(.prediction)) %>% 
   ggplot(aes(x = price, y = bezirk)) +
@@ -1137,7 +1141,7 @@ dat %>%
   coord_cartesian(xlim = c(0, 250))
 
 dat %>% 
-  data_grid(bezirk) %>%
+  modelr::data_grid(bezirk) %>%
   add_predicted_draws(base_model_reputation) %>%
   mutate(bezirk = bezirk_levels[bezirk], price = exp(.prediction)) %>% 
   compare_levels(price, by = bezirk) %>%
@@ -1182,20 +1186,23 @@ dat2 <- list(
   log_price = dat$log_price
 )
 
-base_model_reputation_wohnlage_broken <- ulam(
+base_model_reputation_wohnlage <- ulam(
   flist, data=dat2, 
   cores = 4, chains = 4, iter = 2000
 )
+saveRDS(base_model_reputation_wohnlage, "saved_objects/base_model_reputation_wohnlage.rds")
 
 summary(base_model_reputation_wohnlage)
-summary(base_model_reputation_wohnlage_broken)
+# summary(base_model_reputation_wohnlage_broken)
+
+get_variables(base_model_reputation_wohnlage)
 
 base_model_reputation_wohnlage %>% spread_draws(reputation[bezirk], ndraws = 1000) %>% 
   mutate(bezirk = bezirk_levels[bezirk], price = exp(reputation)) %>% 
   ggplot(aes(y = bezirk, x = price)) +
   stat_halfeye(.width = c(.90, .5))
 
-base_model_reputation_wohnlage %>% spread_draws(reputation[bezirk], bE, delta[wohnlage], ndraws = 1000) %>% 
+base_model_reputation_wohnlage %>% spread_draws(reputation[bezirk], bE, delta[wohnlage], sigma, ndraws = 1000) %>% 
   mutate(bezirk = bezirk_levels[bezirk]) %>% 
   pivot_wider(names_from = wohnlage, names_prefix = "wol_", values_from = delta) %>% 
   mutate(
@@ -1203,10 +1210,13 @@ base_model_reputation_wohnlage %>% spread_draws(reputation[bezirk], bE, delta[wo
     price_wol_2 = reputation+bE*(wol_1+wol_2),
     price_wol_3 = reputation+bE*(wol_1+wol_2+wol_3)
   ) %>% pivot_longer(cols = starts_with("price_wol")) %>% 
-  mutate(price = exp(value)) %>% 
+  # mutate(price = exp(value)) %>% 
+  rowwise() %>% 
+  mutate(price = exp(rnorm(1, value, sigma))) %>% 
   ggplot(aes(x = price, y = bezirk)) +
   stat_slab() +
-  facet_wrap(~name)
+  facet_wrap(~name) +
+  coord_cartesian(xlim = c(0, 250))
 
 # base_model_reputation_wohnlage_broken %>% spread_draws(reputation[bezirk], bE, delta[wohnlage], ndraws = 1000) %>% 
 #   mutate(bezirk = bezirk_levels[bezirk]) %>% 
@@ -1245,7 +1255,7 @@ base_model_reputation_wohnlage %>% spread_draws(reputation[bezirk], bE, delta[wo
 #   stat_slab(alpha = .5) +
 #   facet_wrap(~name)
 
-base_model_reputation_wohnlage %>% spread_draws(reputation[bezirk], bE, delta[wohnlage], ndraws = 1000) %>% 
+base_model_reputation_wohnlage %>% spread_draws(reputation[bezirk], bE, delta[wohnlage], sigma, ndraws = 1000) %>% 
   mutate(bezirk = bezirk_levels[bezirk]) %>% 
   pivot_wider(names_from = wohnlage, names_prefix = "wol_", values_from = delta) %>% 
   mutate(
@@ -1254,12 +1264,15 @@ base_model_reputation_wohnlage %>% spread_draws(reputation[bezirk], bE, delta[wo
     price_wol_3 = reputation+bE*(wol_1+wol_2+wol_3)
   ) %>% pivot_longer(cols = starts_with("price_wol")) %>% 
   mutate(price = exp(value)) %>% 
+  # rowwise() %>% 
+  # mutate(price = exp(rnorm(1, value, sigma))) %>% 
   compare_levels(price, by = name) %>% 
   ggplot(aes(x = price, y = name, fill = stat(abs(x) > 5))) +
   stat_slab() +
   # stat_halfeye(.width = c(.90, .5)) +
   geom_vline(xintercept = c(-5, 5), linetype = "dashed") +
-  scale_fill_manual(values = c("gray80", "skyblue"))
+  scale_fill_manual(values = c("gray80", "skyblue")) # +
+  # coord_cartesian(xlim = c(-250, 250))
 
 # broken
 base_model_reputation_wohnlage %>% spread_draws(reputation[bezirk], bE, delta[wohnlage], ndraws = 1000) %>% 
@@ -1271,12 +1284,12 @@ base_model_reputation_wohnlage %>% spread_draws(reputation[bezirk], bE, delta[wo
     price_wol_3 = reputation+bE*(wol_1+wol_2+wol_3)
   ) %>% pivot_longer(cols = starts_with("price_wol")) %>% 
   mutate(price = exp(value)) %>%
-  select(bezirk, price, name, .draw) %>% 
-  pivot_wider(names_from = bezirk, values_from = price)
+  select(bezirk, price, name, .draw, .chain, .iteration) %>% 
+  pivot_wider(names_from = bezirk, values_from = price) # %>% 
   # compare_levels(price, by = bezirk)
 
 # dat %>%
-#   data_grid(bezirk, median_wohnlage) %>%
+#   modelr::data_grid(bezirk, median_wohnlage) %>%
 #   add_predicted_draws(base_model_reputation_wohnlage) %>%
 #   mutate(
 #     bezirk = bezirk_levels[bezirk], 
@@ -1297,7 +1310,55 @@ link(base_model_reputation_wohnlage) %>% dens()
 rethinking::sim(base_model_reputation_wohnlage) %>% as.numeric() %>% dens()
 extract.samples(base_model_reputation_wohnlage) %>% as_tibble()
 
-###
+# fixed
+bdat <- base_model_reputation_wohnlage %>% spread_draws(reputation[bezirk], bE, delta[wohnlage], sigma, ndraws = 1000) %>% 
+  mutate(bezirk = bezirk_levels[bezirk]) %>% 
+  pivot_wider(names_from = wohnlage, names_prefix = "wol_", values_from = delta) %>% 
+  mutate(
+    price_wol_1 = reputation+bE*(wol_1),
+    price_wol_2 = reputation+bE*(wol_1+wol_2),
+    price_wol_3 = reputation+bE*(wol_1+wol_2+wol_3)
+  ) %>% pivot_longer(cols = starts_with("price_wol")) %>% 
+  # mutate(price = exp(value)) %>%
+  rowwise() %>% mutate(price = exp(rnorm(1, value, sigma))) %>%
+  select(bezirk, price, name, .draw, .chain, .iteration) %>% 
+  pivot_wider(names_from = bezirk, values_from = price, names_prefix = "price_")
+
+adat <- bdat %>% 
+  select(starts_with("price_"))
+
+# Create a sample dataframe (you can replace this with your actual data)
+# set.seed(24)
+# adat <- as.data.frame(matrix(sample(1:20, 26*14, replace=TRUE), ncol=14))
+
+# Get column names
+nm1 <- outer(colnames(adat), colnames(adat), paste, sep="_-_")
+
+# Indices for lower triangular elements (excluding diagonal)
+indx1 <- which(lower.tri(nm1, diag=TRUE))
+
+# Calculate pairwise differences
+res <- outer(1:ncol(adat), 1:ncol(adat), function(x, y) adat[, x] - adat[, y])
+
+# Set column names for the resulting dataframe
+colnames(res) <- nm1
+res1 <- res[-indx1]
+
+# Dimensions of the resulting dataframe
+# dim(res1)  # [1] 26 91
+
+res1 %>% bind_cols(
+  bdat %>% select(-starts_with("price_")) %>% rename(wohnlage = name)
+) %>% 
+  pivot_longer(starts_with("price_"), values_to = "price_diff") %>% 
+  mutate(
+    name = str_replace(name, "_-_", " - ") %>% str_remove_all("price_")
+  ) %>% 
+  ggplot(aes(x = price_diff, y = name, fill = wohnlage)) +
+  stat_slab(alpha = .5) +
+  coord_cartesian(xlim = c(-250, 250))
+
+##### trolley example #####
 
 data(Trolley)
 d <- Trolley %>% sample_n(1000)
@@ -1321,7 +1382,17 @@ m12.6 <- ulam(
     simplex[8]: delta ~ dirichlet( alpha )
   ), data=dat , chains=4 , cores=4 )
 summary(m12.6)
-sim(m12.6)
+temp <- sim(m12.6) %>% as_tibble()
+
+temp %>% pivot_longer(everything()) %>% pull(value) %>% hist()
+d$response %>% hist()
+
+get_variables(m12.6)
+spread_draws(m12.6, kappa[cutpoint], bE, bC, bI, bA, delta[response_level]) %>% 
+  pivot_wider(names_from = "response_level", names_prefix = "resp_", values_from = delta) %>% 
+  mutate(
+    val1 = bAbE*(resp_1)
+    )
 
 dat$edu_norm <- normalize( d$edu_new )
 m12.7 <- ulam(
@@ -1331,6 +1402,127 @@ m12.7 <- ulam(
     c(bA,bI,bC,bE) ~ normal( 0 , 1 ),
     cutpoints ~ normal( 0 , 1.5 )
   ), data=dat , chains=4 , cores=4 )
+temp2 <- sim(m12.7) %>% as_tibble()
+
+temp2 %>% pivot_longer(everything()) %>% pull(value) %>% hist()
+
+##### full model #####
+
+dat <- df_airbnb2 %>%  
+  transmute(
+    log_price = log_price,
+    bezirk = as.integer(as.factor(neighbourhood_group_cleansed)),
+    median_wohnlage = round(median_wohnlage),
+    n_traffic_accidents = scale(n_traffic_accidents),
+    n_crimes_total = scale(Straftaten_total),
+    distance_opnv = scale(as.numeric(distance_opnv)),
+    distance_hauptbahnhof = scale(as.numeric(distance_hauptbahnhof)),
+    distance_toilet = scale(as.numeric(distance_toilet)),
+    gigabit_supply = scale(gigabit_supply_2024),
+    property_type = as.integer(as.factor(room_type)),
+    accommodates = scale(accommodates),
+    beds = scale(beds),
+    bedrooms = scale(bedrooms),
+    bathrooms = scale(bathrooms),
+    kitchen = scale(kitchen),
+    tv = as.integer(TV),
+    dishwasher = as.integer(dishwasher),
+    stove = as.integer(stove),
+    microwave = as.integer(microwave),
+    wineglasses = as.integer(wineglasses),
+    freezer = as.integer(freezer),
+    refrigerator = as.integer(refrigerator),
+    washer = as.integer(washer),
+    dryer = as.integer(dryer),
+    wifi = as.integer(wifi),
+    workspace = as.integer(workspace),
+    bathtub = as.integer(bathtub),
+    boardgames = as.integer(boardgames),
+    piano = as.integer(piano),
+    sauna = as.integer(sauna),
+    bedlinens = as.integer(bedlinens),
+    privateentrance = as.integer(privateentrance),
+    pets = as.integer(pets),
+    balcony = as.integer(balcony),
+    freeparking = as.integer(freeparking),
+    smoking = as.integer(smoking),
+    grill = as.integer(grill)
+  ) %>% 
+  drop_na() %>% 
+  as.list() %>% c(list(alpha = rep(2, 3)))
+
+flist_only_flat_features <- alist(
+  log_price ~ dnorm(a, sigma),
+  a <- reputation[bezirk] + bE*sum(delta[1:median_wohnlage]) + flat_features,
+  flat_features <- bPT[property_type] + bA*accommodates + bB*beds + bBR*bedrooms + 
+    bBaR*bathrooms + bK*kitchen,
+  reputation[bezirk] ~ dnorm(4.61, 0.5),
+  c(bE, bA, bB, bBR, bBaR, bK) ~ dnorm(0, 0.3),
+  bPT[property_type] ~ dnorm(0, 0.5),
+  simplex[3]: delta ~ dirichlet( alpha ),
+  sigma ~ dexp(1)
+)
+
+full_model_only_flat_features <- ulam(
+  flist_only_flat_features, data=dat, 
+  cores = 4, chains = 4, iter = 2000
+)
+saveRDS(full_model_only_flat_features, "saved_objects/full_model_only_flat_features.rds")
+
+summary(full_model_only_flat_features)
+
+flist_no_amenities <- alist(
+  log_price ~ dnorm(a, sigma),
+  a <- reputation[bezirk] + bE*sum(delta[1:median_wohnlage]) + flat_features + region_effects,
+  flat_features <- bPT[property_type] + bA*accommodates + bB*beds + bBR*bedrooms + 
+    bBaR*bathrooms + bK*kitchen,
+  region_effects <- bTA*n_traffic_accidents + bCR*n_crimes_total + bDT*distance_toilet + 
+    bDH*distance_hauptbahnhof + bDO*distance_opnv + bGB*gigabit_supply,
+  reputation[bezirk] ~ dnorm(4.61, 0.5),
+  c(bE, bA, bB, bBR, bBaR, bK,
+    bTA, bCR, bDO, bDH, bDT, bGB) ~ dnorm(0, 0.3),
+  bPT[property_type] ~ dnorm(0, 0.5),
+  simplex[3]: delta ~ dirichlet( alpha ),
+  sigma ~ dexp(1)
+)
+
+full_model_no_amenities <- ulam(
+  flist_no_amenities, data=dat, 
+  cores = 4, chains = 4, iter = 2000
+)
+saveRDS(full_model_no_amenities, "saved_objects/full_model_no_amenities.rds")
+
+summary(full_model_no_amenities)
+
+flist_full <- alist(
+  log_price ~ dnorm(a, sigma),
+  a <- reputation[bezirk] + bE*sum(delta[1:median_wohnlage]) + flat_features + region_effects + amenities,
+  region_effects <- bTA*n_traffic_accidents + bCR*n_crimes_total + bDT*distance_toilet + 
+    bDH*distance_hauptbahnhof + bDO*distance_opnv + bGB*gigabit_supply,
+  flat_features <- bPT[property_type] + bA*accommodates + bB*beds + bBR*bedrooms + 
+    bBaR*bathrooms + bK*kitchen,
+  amenities <- bTV*tv + bDW*dishwasher + bS*stove + bMW*microwave + bWG*wineglasses + 
+    bF*freezer + bRF*refrigerator + bW*washer + bD*dryer + bWifi*wifi + bWS*workspace +
+    bBT*bathtub + bBG*boardgames + bP*piano + bSauna*sauna + bBL*bedlinens + 
+    bPE*privateentrance + bPet*pets + bBalc*balcony + bFP*freeparking + bSmoke*smoking +
+    bG*grill,
+  reputation[bezirk] ~ dnorm(4.61, 0.5),
+  c(bE, bA, bB, bBR, bBaR, bK,
+    bTA, bCR, bDO, bDH, bDT, bGB, 
+    bTV, bDW, bS, bMW, bWG, bF, bRF, bW, bD, bWifi, bWS, bBT,
+    bBG, bP, bSauna, bBL, bPE, bPet, bBalc, bFP, bSmoke, bG) ~ dnorm(0, 0.3),
+  bPT[property_type] ~ dnorm(0, 0.5),
+  simplex[3]: delta ~ dirichlet( alpha ),
+  sigma ~ dexp(1)
+)
+
+full_model <- ulam(
+  flist_full, data=dat, 
+  cores = 4, chains = 4, iter = 2000
+)
+saveRDS(full_model, "saved_objects/full_model.rds")
+
+summary(full_model)
 
 #### ggdag #####
 
@@ -1455,6 +1647,60 @@ dag <- dagify(
     theme(
       legend.position = "bottom"
     )) %>% plot_arrows_on_top()
+
+##### full model #####
+
+library(dagitty)
+
+tidy_dag_adjusted <- full_dag_adjusted %>% ggdag::tidy_dagitty()
+
+(ggdag_status(tidy_dag_adjusted, use_labels = "name", text = FALSE) + 
+  guides(fill = FALSE, color = FALSE) +  # Disable the legend
+  theme_dag()) %>% 
+  plot_arrows_on_top()
+
+m <- ggdag_adjustment_set(
+  tidy_dag_adjusted, shadow = T, use_labels = "name", text = FALSE
+)
+
+m + theme(
+  strip.background = element_blank(),
+  strip.text.x = element_blank()
+)
+
+(ggdag_adjustment_set(
+  tidy_dag_adjusted, shadow = T, use_labels = "name", text = FALSE
+  ) +
+    theme_dag()) %>% 
+  plot_arrows_on_top()
+
+tidy_dag <- full_dag %>% ggdag::tidy_dagitty()
+
+(ggdag_adjustment_set(
+  tidy_dag, shadow = T, use_labels = "name", text = FALSE
+) +
+    theme_dag()) %>% 
+  plot_arrows_on_top()
+
+((ggdag_status(full_dag, use_labels = "name", text = FALSE) + 
+    scale_fill_manual(
+      labels = c("exposure", "outcome", "latent"), 
+      values = c("#e41a1c", "#377eb8", "#4daf4a"),
+      limits = c("exposure", "outcome", "latent")
+    ) +
+    scale_color_manual(
+      labels = c("exposure", "outcome", "latent"), 
+      values = c("#e41a1c", "#377eb8", "#4daf4a"),
+      limits = c("exposure", "outcome", "latent")
+    ) +
+    theme_dag() +
+    theme(
+      legend.position = "bottom"
+    )) %>% plot_arrows_on_top() +
+  geom_rect(aes(xmin = 0, xmax = 1, ymin = 0.6, ymax = 0.875), fill = NA, color = "purple", size = 2) +
+  geom_rect(aes(xmin = 0, xmax = 0.67, ymin = 0.3, ymax = 0.55), fill = NA, color = "green", size = 2) +
+  geom_rect(aes(xmin = 0.68, xmax = 1, ymin = 0.3, ymax = 0.575), fill = NA, color = "orange", size = 2)
+  ) %>% layer_on_bottom(5) %>% layer_on_bottom(6) %>% layer_on_bottom(7)
 
 #### point #####
 

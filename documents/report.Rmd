@@ -486,6 +486,49 @@ The step by step model builing description ends at this point. In the next secti
 
 ## Full model
 
+The full model includes covariables 
+
+```{r dag-reputation-full-model, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Full DAG.", fig.align='center', fig.dim = c(8, 8)}
+gg_temp <- ((ggdag_status(full_dag, use_labels = "name", text = FALSE) + 
+    scale_fill_manual(
+      labels = c("exposure", "outcome", "latent"), 
+      values = c("#e41a1c", "#377eb8", "#4daf4a"),
+      limits = c("exposure", "outcome", "latent")
+    ) +
+    scale_color_manual(
+      labels = c("exposure", "outcome", "latent"), 
+      values = c("#e41a1c", "#377eb8", "#4daf4a"),
+      limits = c("exposure", "outcome", "latent")
+    ) +
+    theme_dag() +
+    theme(
+      legend.position = "bottom"
+    )) %>% plot_arrows_on_top() +
+  geom_rect(aes(xmin = 0, xmax = 1, ymin = 0.6, ymax = 0.875), fill = NA, color = "purple", size = 2) +
+  geom_rect(aes(xmin = 0, xmax = 0.67, ymin = 0.3, ymax = 0.55), fill = NA, color = "green", size = 2) +
+  geom_rect(aes(xmin = 0.68, xmax = 1, ymin = 0.3, ymax = 0.575), fill = NA, color = "orange", size = 2)
+  ) %>% layer_on_bottom(5) %>% layer_on_bottom(6) %>% layer_on_bottom(7)
+plot(gg_temp)
+```
+
+```{r dag-reputation-full-model-minimal-adjustment-set, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Full DAG with minimal adjustment set. Only Wohnlage is nedded to close backdoor paths.", fig.align='center', fig.dim = c(8, 8)}
+(ggdag_adjustment_set(full_dag, use_labels = "name", text = FALSE, shadow = T) + 
+  theme_dag() +
+  theme(
+    legend.position = "bottom"
+  )) %>% plot_arrows_on_top() 
+```
+
+```{r dag-reputation-full-model-adjustment-set, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Full DAG with all covariables included in the model marked as adjusted. No new backdoor paths opened.", fig.align='center', fig.dim = c(8, 8)}
+(ggdag_adjustment_set(full_dag_adjusted, use_labels = "name", text = FALSE, shadow = T) + 
+  theme_dag() +
+  theme(
+    legend.position = "bottom",
+    strip.background = element_blank(),
+    strip.text.x = element_blank()
+  )) %>% plot_arrows_on_top() 
+```
+
 ## Regression
 
 ### Baseline model

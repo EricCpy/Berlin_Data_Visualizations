@@ -99,6 +99,10 @@ plot_ly() %>%
   )
 ```
 
+# test
+
+Schenbar nur eine plotly Karte pr Kapitel :(
+
 ```{r airbnb-map-plotly-prices, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Interactive map with plotly with OPNV info showing log prices.", fig.align='center', fig.dim = c(8, 8)}
 plot_ly() %>% 
   add_sf(
@@ -546,8 +550,12 @@ base_model_student <- readRDS("saved_objects/base_model_student.rds")
 base_model_reputation_wohnlage <- readRDS("saved_objects/base_model_reputation_wohnlage.rds")
 base_model_reputation_wohnlage_student <- readRDS("saved_objects/base_model_reputation_wohnlage_student.rds")
 
-bezirk_levels <- df_airbnb %>% 
+bezirk_levels <- df_airbnb2 %>% 
   transmute(bezirk = as.factor(neighbourhood_group_cleansed)) %>% 
+  pull() %>% levels()
+
+property_type_levels <- df_airbnb2 %>% 
+  transmute(property_type = as.factor(room_type)) %>% 
   pull() %>% levels()
 ```
 
@@ -734,7 +742,7 @@ ggpubr::ggarrange(
 
 To investigate the difference of the predicted price distributions we once again create a contrast plot (see Figure \@ref(fig:base-model-rep-wol-predictions-contrasts)). One can see that the distributions of price differences have an considerable amount of mass on both sides of zero. Nevertheless, the probability to get a lower price for an Airbnb in *Reinickendorf* than in *Mitte* is predicted as 75.6 %. The probability to safe more than 10 €per night is still 70.4 %. Even though it was hard to see any difference without the contrast plot and with zero near to the peak of probability distributions we find results that are meaningful for in reality.
 
-```{r base-model-rep-wol-predictions-contrasts, echo=FALSE, message=FALSE, warning=FALSE, cache=full_refit, fig.cap="Bla.", fig.align='center', fig.dim = c(8, 8)}
+```{r base-model-rep-wol-predictions-contrasts, echo=FALSE, message=FALSE, warning=FALSE, cache=full_refit, fig.cap="Contrast plot of price difference among four districts. Positive values: one safes money if one books an Airbnb in the *Bezirk* named right of the minus sign.", fig.align='center', fig.dim = c(8, 8)}
 bdat <- base_model_reputation_wohnlage %>% 
   spread_draws(reputation[bezirk], bE, delta[wohnlage], sigma, ndraws = 1000) %>% 
   pivot_wider(names_from = "wohnlage", values_from = "delta", names_prefix = "wol_") %>%
@@ -796,7 +804,7 @@ To conclude this section we want to state:
 
 ### Full model
 
-
+For the full model all additional covariables were either included as numeric predictors and scaled before or treated as binomial. The only covariable modeled as ordered predictor is *Wohnlage*. Treating covariables like number of rooms was simpler. In a real analysis one might take the time to e.g. model number of bathrooms as ordered instead of numeric predictor because it makes more difference if there are zero or one bathrooms compared to two or three. And it makes no sense to predict negative room numbers or fractions on a finer grain than a half.
 
 ### Alternative interpretations
 

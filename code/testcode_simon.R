@@ -1670,6 +1670,8 @@ temp2 %>% pivot_longer(everything()) %>% pull(value) %>% hist()
 
 ##### full model #####
 
+property_type_levels <- df_airbnb2 %>% transmute(property_type = as.factor(room_type)) %>% pull() %>% levels()
+
 dat <- df_airbnb2 %>%  
   transmute(
     log_price = log_price,
@@ -1686,7 +1688,7 @@ dat <- df_airbnb2 %>%
     beds = scale(beds),
     bedrooms = scale(bedrooms),
     bathrooms = scale(bathrooms),
-    kitchen = scale(kitchen),
+    kitchen = as.integer(kitchen),
     tv = as.integer(TV),
     dishwasher = as.integer(dishwasher),
     stove = as.integer(stove),
@@ -1815,6 +1817,22 @@ full_model_student <- ulam(
 saveRDS(full_model_student, "saved_objects/full_model_student.rds")
 
 summary(full_model_student)
+
+# plots
+get_variables(full_model)
+
+full_model %>% 
+  spread_draws(reputation[bezirk], bE, delta[wohnlage], bK, ndraws = 1000) %>% 
+  pivot_wider(names_from = "wohnlage", values_from = "delta", names_prefix = "wol_") %>% 
+  mutate(
+    price_wol_1 = exp(reputation+bE*(wol_1)),
+    price_wol_2 = exp(reputation+bE*(wol_1+wol_2)),
+    price_wol_3 = exp(reputation+bE*(wol_1+wol_2+wol_3))
+  ) %>% pivot_longer(cols = starts_with("price_"), values_to = "price", names_prefix = "price_wol_", names_to = "wohnlage") %>% 
+  mutate(bezirk = bezirk_levels[bezirk]) %>% 
+  ggplot(aes(x = price, y = bezirk, fill = wohnlage)) +
+  stat_slab(.width = c(.90, .5), alpha = .5) +
+  labs(x=NULL, y=NULL)
 
 #### ggdag #####
 

@@ -33,7 +33,7 @@ Examining the factors influencing Airbnb characteristics, such as prices, is par
 **TODO describe (briefly!) geo datasets (crime rate, toilets, opnv, gigabit, lor, uwb)**
 **TODO show the price distribution (normal distribution)**
 
-## Data Description
+## Data description
 
 
 
@@ -813,7 +813,7 @@ Sauna yes
 should crime rate be included? reduces variance of reputation? can have parasite effect
 
 
-# Review and Title Sentiment Analysis
+# Sentiment analysis
 
 In this section, we analyze the sentiments of reviews and titles using existing sentiment analysis tools. Most tools in this field are designed to work with only one language and provide inaccurate analyses for texts in other languages. Therefore, our first step was to use a language detection tool to identify the languages of all texts. Upon determining the languages, we found that our reviews mostly consist of English and German reviews.
 
@@ -831,7 +831,7 @@ Here are three examples demonstrating the German sentiment analysis tool along w
 - **die Wohnung stinkt nicht** (the apartment does not stink) -> neutral
 - **die Wohnung duftet** (the apartment smells) -> neutral
 
-## Sentiment Analysis of Titles
+## Sentiment analysis of titles
 
 To better understand the titles, we first performed a word analysis and filtered out the top entities from the titles.
 
@@ -1115,7 +1115,7 @@ plot_correlation(region_data, "num_listings", "sentiment_region_score")
 
 We observe a strong linear correlation between the number of Airbnbs and sentiment. We attribute this to the selection effect, in popular neighborhoods, the demand for properties often exceeds the availability of desirable options. As a result, people may end up booking less desirable accommodations out of necessity, which leads to negative reviews and lower sentiment.
 
-#### Rating vs sentiment as price indicator
+#### Rating vs Sentiment as price indicator
 
 We also explored whether the average sentiment of an Airbnb affects its price differently than the rating. If there is no significant difference, using either sentiment or rating to assess price would yield the same results. In such cases, the rating might be preferred for simplicity, as it doesn't require additional processing. To examine this, we use the following two scatter plots, the left plot shows the correlation between price and rating, while the right plot displays the correlation between price and sentiment.
 
@@ -1134,7 +1134,7 @@ sentiment_plot <- ggplot(df_listings_cleaned_with_review_sentiment, aes(x = mean
   geom_point() +
   geom_smooth(method = "lm") +
   labs(
-    title = " Price vs review sentiment score",
+    title = " Price vs Review sentiment score",
     x = "Review Sentiment Score",
     y = "Price"
   ) +
@@ -1154,13 +1154,13 @@ We can observe that both the rating and the sentiment score have a significant i
 
 Furthermore, we examined how the influence of sentiment and rating varied across different districts. To do this, we first repeated the previous general visualization for all districts.
 
-```{r correlationPriceSentiment, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Correlation sentiment and price and rating and price", fig.align='center'}
+```{r correlationPriceSentimentRatingNeighborhoods, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Correlation sentiment and price and rating and price", fig.align='center'}
 ggplot(df_listings_cleaned_with_review_sentiment, aes(x = review_scores_rating, y = price)) +
   geom_point(aes(color = neighbourhood_group_cleansed), alpha = 0.6) +
   geom_smooth(method = "lm", se = FALSE, aes(color = neighbourhood_group_cleansed)) +
   facet_wrap(~ neighbourhood_group_cleansed) + 
   labs(
-    title = "Price vs rating score by neighborhood",
+    title = "Price vs Rating score by neighborhood",
     x = "Rating",
     y = "Price"
   ) +
@@ -1191,7 +1191,7 @@ grid.arrange(rating_plot, sentiment_plot, ncol=2)
 
 We can observe that sentiment fluctuates significantly more between districts compared to the rating, which shows a relatively consistent trend across all areas. Using two ANOVA tests, we assessed the significance of the differences in sentiment and rating across the districts.
 
-```{r regressionPriceSentimentRating, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Correlation sentiment and price and rating and price", fig.align='center'}
+```{r anovaTest, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Correlation sentiment and price and rating and price", fig.align='center'}
 summary(aov(review_scores_rating ~ neighbourhood_group_cleansed, data=df_listings_cleaned_with_review_sentiment))
 summary(aov(mean_sentiment_score_for_reviews ~ neighbourhood_group_cleansed, data=df_listings_cleaned_with_review_sentiment))
 ```
@@ -1439,7 +1439,7 @@ We observed that German reviews are predominantly positive, while English review
 
 * [Plotly](https://plotly-r.com/)
 
-### Inteactive maps
+### Interactive maps
 
 * [tmap, ggplot2, mapview, mapdeck, leaflet](https://bookdown.org/nicohahn/making_maps_with_r5/docs/mapdeck.html)
 * [Time slider with plotly](https://www.analytics-tuts.com/map-with-time-slider-using-plotly-in-r/)

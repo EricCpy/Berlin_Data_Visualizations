@@ -149,6 +149,37 @@ full_model <- ulam(
   cores = 4, chains = 4, iter = 2000
 )
 
+flist_full_verbose <- alist(
+  log_price ~ dnorm(a, sigma),
+  a <- reputation[bezirk] + bE*sum(delta[1:median_wohnlage]) + flat_features + region_effects + amenities + kitchen_amenities,
+  region_effects <- bTrafficAccidents*n_traffic_accidents + bDistToilet*distance_toilet + 
+    bDistHbf*distance_hauptbahnhof + bDistTrainstation*distance_opnv + bGigabit*gigabit_supply,
+  flat_features <- bPropType[property_type] + bAccommodates*accommodates + bBeds*beds + bBedrooms*bedrooms + 
+    bBathrooms*bathrooms + bKitchen*kitchen,
+  amenities <- bTV*tv + bWifi*wifi + bWorkspace*workspace +
+    bBathtub*bathtub + bBoardGames*boardgames + bPiano*piano + bSauna*sauna + bBedlinens*bedlinens +
+    bPrivateEntrance*privateentrance + bPet*pets + bBalcony*balcony + bFreeParking*freeparking + bSmoke*smoking +
+    bGrill*grill,
+  kitchen_amenities <- bDishwasher*dishwasher + bStove*stove + bMicrowave*microwave + bWineglasses*wineglasses +
+    bFreezer*freezer + bRefrigerator*refrigerator + bWasher*washer + bDryer*dryer,
+  reputation[bezirk] ~ dnorm(4.61, 0.5),
+  c(bE, bAccommodates, bBeds, bBedrooms, bBathrooms, bKitchen,
+    bTrafficAccidents, bDistTrainstation, bDistHbf, bDistToilet, bGigabit, 
+    bTV, bDishwasher, bStove, bMicrowave, bWineglasses, bFreezer, bRefrigerator, bWasher, bDryer, 
+    bWifi, bWorkspace, bBathtub, bBoardGames, bPiano, bSauna, bBedlinens, 
+    bPrivateEntrance, bPet, bBalcony, bFreeParking, bSmoke, 
+    bGrill
+  ) ~ dnorm(0, 0.3),
+  bPropType[property_type] ~ dnorm(0, 0.5),
+  simplex[3]: delta ~ dirichlet( alpha ),
+  sigma ~ dexp(1)
+)
+
+full_model_verbose <- ulam(
+  flist_full_verbose, data=dat, 
+  cores = 4, chains = 4, iter = 2000
+)
+
 #### saving posterior draws ####
 
 set.seed(1337)
@@ -156,15 +187,32 @@ set.seed(1337)
 base_model %>% spread_draws(mu, sigma, ndraws = 1000) %>% 
   saveRDS("saved_objects/base_model_post.rds")
 base_model_student %>% spread_draws(mu, sigma, ndraws = 1000) %>% 
-  saveRDS("saved_objects/base_model_studnet_post.rds")
+  saveRDS("saved_objects/base_model_student_post.rds")
 
 base_model_reputation_wohnlage %>% 
   spread_draws(reputation[bezirk], bE, delta[wohnlage], sigma, ndraws = 1000) %>% 
   saveRDS("saved_objects/base_model_reputation_wohnlage_post.rds")
 base_model_reputation_wohnlage_student %>% 
   spread_draws(reputation[bezirk], bE, delta[wohnlage], sigma, ndraws = 1000) %>% 
-  saveRDS("saved_objects/base_model_reputation_wohnlage_studnet_post.rds")
+  saveRDS("saved_objects/base_model_reputation_wohnlage_student_post.rds")
 
 full_model %>% 
   spread_draws(reputation[bezirk], bE, delta[wohnlage], bPT[property_type], sigma, ndraws = 1000) %>% 
   saveRDS("saved_objects/full_model_post.rds")
+
+full_model_verbose %>% 
+  spread_draws(
+    reputation[bezirk], bE, delta[wohnlage], bPropType[property_type], sigma,
+    bAccommodates, bBeds, bBedrooms, bBathrooms, bKitchen,
+    bTrafficAccidents, bDistTrainstation, bDistHbf, bDistToilet, bGigabit, 
+    bTV, bDishwasher, bStove, bMicrowave, bWineglasses, bFreezer, bRefrigerator, bWasher, bDryer, 
+    bWifi, bWorkspace, bBathtub, bBoardGames, bPiano, bSauna, bBedlinens, 
+    bPrivateEntrance, bPet, bBalcony, bFreeParking, bSmoke, 
+    bGrill,
+    ndraws = 1000) %>% 
+  saveRDS("saved_objects/full_model_verbose_post.rds")
+
+summary(full_model_verbose) %>% as_tibble() %>% mutate(
+  parameter = summary(full_model_verbose) %>% rownames(), .before = 1
+) %>% 
+  saveRDS("saved_objects/full_model_verbose_post_summary.rds")

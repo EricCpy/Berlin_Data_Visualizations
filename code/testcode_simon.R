@@ -1782,13 +1782,51 @@ flist_full <- alist(
   sigma ~ dexp(1)
 )
 
-full_model <- ulam(
-  flist_full, data=dat, 
-  cores = 4, chains = 4, iter = 2000,
-  file = "saved_objects/full_model"
+flist_full_verbose <- alist(
+  log_price ~ dnorm(a, sigma),
+  a <- reputation[bezirk] + bE*sum(delta[1:median_wohnlage]) + flat_features + region_effects + amenities + kitchen_amenities,
+  region_effects <- bTrafficAccidents*n_traffic_accidents + bDistToilet*distance_toilet + 
+    bDistHbf*distance_hauptbahnhof + bDistTrainstation*distance_opnv + bGigabit*gigabit_supply,
+  flat_features <- bPropType[property_type] + bAccommodates*accommodates + bBeds*beds + bBedrooms*bedrooms + 
+    bBathrooms*bathrooms + bKitchen*kitchen,
+  amenities <- bTV*tv + bWifi*wifi + bWorkspace*workspace +
+  bBathtub*bathtub + bBoardGames*boardgames + bPiano*piano + bSauna*sauna + bBedlinens*bedlinens +
+  bPrivateEntrance*privateentrance + bPet*pets + bBalcony*balcony + bFreeParking*freeparking + bSmoke*smoking +
+  bGrill*grill,
+  kitchen_amenities <- bDishwasher*dishwasher + bStove*stove + bMicrowave*microwave + bWineglasses*wineglasses +
+    bFreezer*freezer + bRefrigerator*refrigerator + bWasher*washer + bDryer*dryer,
+  reputation[bezirk] ~ dnorm(4.61, 0.5),
+  c(bE, bAccommodates, bBeds, bBedrooms, bBathrooms, bKitchen,
+    bTrafficAccidents, bDistTrainstation, bDistHbf, bDistToilet, bGigabit, 
+    bTV, bDishwasher, bStove, bMicrowave, bWineglasses, bFreezer, bRefrigerator, bWasher, bDryer, 
+    bWifi, bWorkspace, bBathtub, bBoardGames, bPiano, bSauna, bBedlinens, 
+    bPrivateEntrance, bPet, bBalcony, bFreeParking, bSmoke, 
+    bGrill
+    ) ~ dnorm(0, 0.3),
+  bPropType[property_type] ~ dnorm(0, 0.5),
+  simplex[3]: delta ~ dirichlet( alpha ),
+  sigma ~ dexp(1)
 )
 
-summary(full_model)
+full_model_verbose <- ulam(
+  flist_full_verbose, data=dat, 
+  cores = 4, chains = 4, iter = 2000
+)
+
+full_model_verbose %>% 
+  spread_draws(
+    reputation[bezirk], bE, delta[wohnlage], bPropType[property_type], sigma,
+    bAccommodates, bBeds, bBedrooms, bBathrooms, bKitchen,
+    bTrafficAccidents, bDistTrainstation, bDistHbf, bDistToilet, bGigabit, 
+    bTV, bDishwasher, bStove, bMicrowave, bWineglasses, bFreezer, bRefrigerator, bWasher, bDryer, 
+    bWifi, bWorkspace, bBathtub, bBoardGames, bPiano, bSauna, bBedlinens, 
+    bPrivateEntrance, bPet, bBalcony, bFreeParking, bSmoke, 
+    bGrill,
+    ndraws = 1000) %>% 
+  saveRDS("saved_objects/full_model_verbose_post.rds")
+
+
+full_model_verbose_post <- readRDS("saved_objects/full_model_verbose_post.rds")
 
 flist_full_student <- alist(
   log_price ~ dstudent(2, a, sigma),
@@ -1823,18 +1861,203 @@ summary(full_model_student)
 # plots
 get_variables(full_model)
 
-full_model %>% 
-  spread_draws(reputation[bezirk], bE, delta[wohnlage], bK, ndraws = 1000) %>% 
+full_model_post <- readRDS("saved_objects/full_model_post.rds") 
+full_model_post %>%
   pivot_wider(names_from = "wohnlage", values_from = "delta", names_prefix = "wol_") %>% 
   mutate(
-    price_wol_1 = exp(reputation+bE*(wol_1)),
-    price_wol_2 = exp(reputation+bE*(wol_1+wol_2)),
-    price_wol_3 = exp(reputation+bE*(wol_1+wol_2+wol_3))
+    price_wol_1 = exp(reputation+bE*(wol_1)+bPT),
+    price_wol_2 = exp(reputation+bE*(wol_1+wol_2)+bPT),
+    price_wol_3 = exp(reputation+bE*(wol_1+wol_2+wol_3)+bPT)
   ) %>% pivot_longer(cols = starts_with("price_"), values_to = "price", names_prefix = "price_wol_", names_to = "wohnlage") %>% 
-  mutate(bezirk = bezirk_levels[bezirk]) %>% 
-  ggplot(aes(x = price, y = bezirk, fill = wohnlage)) +
+  mutate(bezirk = bezirk_levels[bezirk], property_type = property_type_levels[property_type]) %>% 
+  ggplot(aes(x = price, y = bezirk, fill = wohnlage, color = property_type)) +
   stat_slab(.width = c(.90, .5), alpha = .5) +
   labs(x=NULL, y=NULL)
+
+full_model_post %>%
+  pivot_wider(names_from = "wohnlage", values_from = "delta", names_prefix = "wol_") %>% 
+  mutate(
+    price_wol_1 = exp(reputation+bE*(wol_1)+bPT),
+    price_wol_2 = exp(reputation+bE*(wol_1+wol_2)+bPT),
+    price_wol_3 = exp(reputation+bE*(wol_1+wol_2+wol_3)+bPT)
+  ) %>% pivot_longer(cols = starts_with("price_"), values_to = "price", names_prefix = "price_wol_", names_to = "wohnlage") %>% 
+  mutate(bezirk = bezirk_levels[bezirk], property_type = property_type_levels[property_type]) %>% 
+  group_by(bezirk) %>% summarise(median_price = median(price)) %>% 
+  arrange(median_price) %>% rowid_to_column() %>% 
+  mutate(type = "full model") %>% 
+  bind_rows(
+    df_airbnb %>% group_by(neighbourhood_group_cleansed) %>%
+      summarise(median_price = median(price)) %>% 
+      arrange(median_price) %>% rowid_to_column() %>% 
+      mutate(type = "raw data") %>% rename(bezirk = neighbourhood_group_cleansed)
+  ) %>% 
+  ggplot() +
+  geom_col(aes(x = median_price, y = bezirk, group = type, fill = as.ordered(rowid), color = type), 
+           position = "dodge2", size = 1)
+
+
+
+full_model_post %>%
+  pivot_wider(names_from = "wohnlage", values_from = "delta", names_prefix = "wol_") %>% 
+  rowwise() %>% 
+  mutate(
+    price_wol_1 = exp(rnorm(1, reputation+bE*(wol_1)+bPT, sigma)),
+    price_wol_2 = exp(rnorm(1, reputation+bE*(wol_1+wol_2)+bPT, sigma)),
+    price_wol_3 = exp(rnorm(1, reputation+bE*(wol_1+wol_2+wol_3)+bPT, sigma))
+  ) %>% pivot_longer(cols = starts_with("price_"), values_to = "price", names_prefix = "price_wol_", names_to = "wohnlage") %>% 
+  mutate(bezirk = bezirk_levels[bezirk], property_type = property_type_levels[property_type]) %>% 
+  ggplot(aes(x = price, y = bezirk, fill = wohnlage, color = property_type)) +
+  stat_slab(.width = c(.90, .5), alpha = .5) +
+  labs(x=NULL, y=NULL) +
+  coord_cartesian(xlim = c(0, 500))
+
+bdat <- full_model_post %>% 
+  pivot_wider(names_from = "wohnlage", values_from = "delta", names_prefix = "wol_") %>% 
+  mutate(
+    price_wol_1 = exp(reputation+bE*(wol_1)+bPT),
+    price_wol_2 = exp(reputation+bE*(wol_1+wol_2)+bPT),
+    price_wol_3 = exp(reputation+bE*(wol_1+wol_2+wol_3)+bPT)
+  ) %>% pivot_longer(cols = starts_with("price_"), values_to = "price", names_prefix = "price_wol_", names_to = "wohnlage") %>% 
+  mutate(bezirk = bezirk_levels[bezirk], property_type = property_type_levels[property_type]) %>% 
+  filter(bezirk %in% c("Mitte", "Tempelhof-Schöneberg", "Neukölln", "Reinickendorf")) %>% 
+  select(bezirk, price, wohnlage, .draw, .chain, .iteration, property_type) %>% 
+  pivot_wider(names_from = bezirk, values_from = price, names_prefix = "price_")
+
+adat <- bdat %>% ungroup() %>% 
+  select(starts_with("price_"))
+
+# Get column names
+nm1 <- outer(colnames(adat), colnames(adat), paste, sep="_-_")
+
+# Indices for lower triangular elements (excluding diagonal)
+indx1 <- which(lower.tri(nm1, diag=TRUE))
+
+# Calculate pairwise differences
+res <- outer(1:ncol(adat), 1:ncol(adat), function(x, y) adat[, x] - adat[, y])
+
+# Set column names for the resulting dataframe
+colnames(res) <- nm1
+res1 <- res[-indx1]
+
+area <- 10
+res1 %>% bind_cols(
+  bdat %>% select(-starts_with("price_")) # %>% rename(wohnlage = name)
+) %>% 
+  pivot_longer(starts_with("price_"), values_to = "price_diff") %>% 
+  mutate(
+    name = str_replace(name, "_-_", " - ") %>% str_remove_all("price_")
+  ) %>% 
+  ggplot(aes(x = price_diff, y = name, fill = stat(abs(x) > area))) +
+  stat_halfeye() +
+  geom_vline(xintercept = c(-area, area), linetype = "dashed") +
+  scale_fill_manual(values = c("gray80", "skyblue")) +
+  labs(x="difference of mean price in €", y=NULL) +
+  facet_wrap(~property_type)
+
+bdat <- full_model_post %>% 
+  pivot_wider(names_from = "wohnlage", values_from = "delta", names_prefix = "wol_") %>% 
+  rowwise() %>% 
+  mutate(
+    price_wol_1 = exp(rnorm(1, reputation+bE*(wol_1)+bPT, sigma)),
+    price_wol_2 = exp(rnorm(1, reputation+bE*(wol_1+wol_2)+bPT, sigma)),
+    price_wol_3 = exp(rnorm(1, reputation+bE*(wol_1+wol_2+wol_3)+bPT, sigma))
+  ) %>% pivot_longer(cols = starts_with("price_"), values_to = "price", names_prefix = "price_wol_", names_to = "wohnlage") %>% 
+  mutate(bezirk = bezirk_levels[bezirk], property_type = property_type_levels[property_type]) %>% 
+  filter(bezirk %in% c("Mitte", "Tempelhof-Schöneberg", "Neukölln", "Reinickendorf")) %>% 
+  select(bezirk, price, wohnlage, .draw, .chain, .iteration, property_type) %>% 
+  pivot_wider(names_from = bezirk, values_from = price, names_prefix = "price_")
+
+adat <- bdat %>% ungroup() %>% 
+  select(starts_with("price_"))
+
+# Get column names
+nm1 <- outer(colnames(adat), colnames(adat), paste, sep="_-_")
+
+# Indices for lower triangular elements (excluding diagonal)
+indx1 <- which(lower.tri(nm1, diag=TRUE))
+
+# Calculate pairwise differences
+res <- outer(1:ncol(adat), 1:ncol(adat), function(x, y) adat[, x] - adat[, y])
+
+# Set column names for the resulting dataframe
+colnames(res) <- nm1
+res1 <- res[-indx1]
+
+df_temp <- res1 %>% bind_cols(
+  bdat %>% select(-starts_with("price_")) # %>% rename(wohnlage = name)
+) %>% 
+  pivot_longer(starts_with("price_"), values_to = "price_diff") %>% 
+  mutate(
+    name = str_replace(name, "_-_", " - ") %>% str_remove_all("price_")
+  )
+
+df_temp %>% left_join(
+  df_temp %>% group_by(name, property_type) %>% summarise(p_safe = round(100*mean(price_diff > 0),1)) %>% 
+    mutate(p_safe = str_c(p_safe, " %"))
+) %>% 
+  ggplot(aes(x = price_diff, y = name, fill = stat(x > 0))) +
+  stat_halfeye() +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  scale_fill_manual(values = c("gray80", "skyblue")) +
+  labs(x="difference of mean price in €", y=NULL) +
+  geom_text(aes(x = 150, y = as.integer(as.factor(name))+0.35, label = p_safe)) +
+  coord_cartesian(xlim = c(-250, 250)) +
+  facet_wrap(~property_type) +
+  theme(
+    legend.position = "bottom"
+  )
+
+p_safe_10 <- df_temp %>% group_by(name, property_type) %>% 
+  summarise(p_safe_10 = round(100*mean(price_diff > 10), 2)) %>% 
+  # mutate(p_safe_10 = abs(50 - p_safe_10)) %>% 
+  arrange(p_safe_10) %>% print(n = 24)
+
+contrast_by <- "bSauna"
+full_model_verbose_post %>% 
+  pivot_wider(names_from = "wohnlage", values_from = "delta", names_prefix = "wol_") %>% 
+  mutate(
+    log_price_wol_1 = reputation+bE*(wol_1)+bPropType,
+    log_price_wol_2 = reputation+bE*(wol_1+wol_2)+bPropType,
+    log_price_wol_3 = reputation+bE*(wol_1+wol_2+wol_3)+bPropType
+  ) %>% pivot_longer(cols = starts_with("log_price_"), values_to = "log_price", names_prefix = "log_price_wol_", names_to = "wohnlage") %>% 
+  mutate(bezirk = bezirk_levels[bezirk], property_type = property_type_levels[property_type]) %>% 
+  mutate(price_diff = exp(log_price+!!rlang::sym(contrast_by))-exp(log_price)) %>% 
+  ungroup() %>% 
+  mutate(perc = str_c(round(100*mean(price_diff>0), 2), " %"), .before = 1) %>% 
+  sample_frac(0.1) %>% 
+  ggplot(aes(x = price_diff, fill = stat(x > 0))) +
+  stat_halfeye() +
+  geom_text(aes(x = 10, 0.05, label = perc)) +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  scale_fill_manual(values = c("gray80", "skyblue")) +
+  labs(x="difference of mean price in €", y=NULL) +
+  theme(
+    legend.position = "bottom"
+  )
+
+full_model_verbose_post %>% 
+  pivot_wider(names_from = "wohnlage", values_from = "delta", names_prefix = "wol_") %>% 
+  mutate(
+    log_price_wol_1 = reputation+bE*(wol_1)+bPropType,
+    log_price_wol_2 = reputation+bE*(wol_1+wol_2)+bPropType,
+    log_price_wol_3 = reputation+bE*(wol_1+wol_2+wol_3)+bPropType
+  ) %>% pivot_longer(cols = starts_with("log_price_"), values_to = "log_price", names_prefix = "log_price_wol_", names_to = "wohnlage") %>% 
+  mutate(bezirk = bezirk_levels[bezirk], property_type = property_type_levels[property_type]) %>% 
+  rowwise() %>% 
+  mutate(price_diff = exp(rnorm(1, log_price+!!rlang::sym(contrast_by), sigma))-exp(rnorm(1, log_price, sigma))) %>% 
+  ungroup() %>% 
+  mutate(perc = str_c(round(100*mean(price_diff>0), 2), " %"), .before = 1) %>% 
+  sample_frac(0.1) %>% 
+  ggplot(aes(x = price_diff, fill = stat(x > 0))) +
+  stat_halfeye() +
+  geom_text(aes(x = 50, 0.05, label = perc)) +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  scale_fill_manual(values = c("gray80", "skyblue")) +
+  labs(x="difference of predicted price in €", y=NULL) +
+  theme(
+    legend.position = "bottom"
+  ) +
+  coord_cartesian(xlim = c(-250, 250))
 
 #### ggdag #####
 
@@ -2054,3 +2277,88 @@ property_type_levels <- df_airbnb %>%
       strip.background = element_blank(),
       strip.text.x = element_blank()
     )) %>% plot_arrows_on_top()
+
+#### interactive ####
+
+full_model_verbose_post <- readRDS("saved_objects/full_model_verbose_post.rds")
+full_model_verbose_post_summary <- readRDS("saved_objects/full_model_verbose_post_summary.rds") %>% 
+  select(-rhat, -ess_bulk) %>% 
+  filter(!str_starts(parameter, "delta")) %>% 
+  filter(!str_starts(parameter, "reputation")) %>% 
+  filter(!str_starts(parameter, "bPropType")) %>% 
+  filter(parameter != "sigma") %>% 
+  mutate("total effect" = parameter %in% direct_effect_only)
+
+full_model_verbose_post %>% 
+  pivot_longer(full_model_verbose_post_summary$parameter)
+
+full_model_verbose_post %>% 
+  pivot_wider(names_from = "wohnlage", values_from = "delta", names_prefix = "wol_") %>% 
+  mutate(
+    log_price_wol_1 = reputation+bE*(wol_1)+bPropType,
+    log_price_wol_2 = reputation+bE*(wol_1+wol_2)+bPropType,
+    log_price_wol_3 = reputation+bE*(wol_1+wol_2+wol_3)+bPropType
+  ) %>% pivot_longer(cols = starts_with("log_price_"), values_to = "log_price", names_prefix = "log_price_wol_", names_to = "wohnlage") %>% 
+  mutate(bezirk = bezirk_levels[bezirk], property_type = property_type_levels[property_type]) %>% 
+  pivot_longer(full_model_verbose_post_summary$parameter) %>% 
+  sample_frac(0.01) %>% 
+  # filter(name == "bSauna") %>% 
+  mutate(price_diff = exp(log_price+value)-exp(log_price)) %>% 
+  group_by(name) %>% 
+  mutate(perc = str_c(round(100*mean(price_diff>0), 2), " %"), .before = 1) %>% 
+  ggplot(aes(x = price_diff, group = name)) +
+  geom_density() +
+  geom_text(aes(x = 10, 0.05, label = perc)) +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  # scale_fill_manual(values = c("gray80", "skyblue")) +
+  labs(x="difference of mean price in €", y=NULL) +
+  theme(
+    legend.position = "bottom"
+  )
+
+contrast_by <- "bSauna"
+full_model_verbose_post %>% 
+  pivot_wider(names_from = "wohnlage", values_from = "delta", names_prefix = "wol_") %>% 
+  mutate(
+    log_price_wol_1 = reputation+bE*(wol_1)+bPropType,
+    log_price_wol_2 = reputation+bE*(wol_1+wol_2)+bPropType,
+    log_price_wol_3 = reputation+bE*(wol_1+wol_2+wol_3)+bPropType
+  ) %>% pivot_longer(cols = starts_with("log_price_"), values_to = "log_price", names_prefix = "log_price_wol_", names_to = "wohnlage") %>% 
+  mutate(bezirk = bezirk_levels[bezirk], property_type = property_type_levels[property_type]) %>% 
+  mutate(price_diff = exp(log_price+!!rlang::sym(contrast_by))-exp(log_price)) %>% 
+  ungroup() %>% 
+  mutate(perc = str_c(round(100*mean(price_diff>0), 2), " %"), .before = 1) %>% 
+  sample_frac(0.1) %>% 
+  ggplot(aes(x = price_diff, fill = stat(x > 0))) +
+  stat_halfeye() +
+  geom_text(aes(x = 10, 0.05, label = perc)) +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  scale_fill_manual(values = c("gray80", "skyblue")) +
+  labs(x="difference of mean price in €", y=NULL) +
+  theme(
+    legend.position = "bottom"
+  )
+
+full_model_verbose_post %>% 
+  pivot_wider(names_from = "wohnlage", values_from = "delta", names_prefix = "wol_") %>% 
+  mutate(
+    log_price_wol_1 = reputation+bE*(wol_1)+bPropType,
+    log_price_wol_2 = reputation+bE*(wol_1+wol_2)+bPropType,
+    log_price_wol_3 = reputation+bE*(wol_1+wol_2+wol_3)+bPropType
+  ) %>% pivot_longer(cols = starts_with("log_price_"), values_to = "log_price", names_prefix = "log_price_wol_", names_to = "wohnlage") %>% 
+  mutate(bezirk = bezirk_levels[bezirk], property_type = property_type_levels[property_type]) %>% 
+  rowwise() %>% 
+  mutate(price_diff = exp(rnorm(1, log_price+!!rlang::sym(contrast_by), sigma))-exp(rnorm(1, log_price, sigma))) %>% 
+  ungroup() %>% 
+  mutate(perc = str_c(round(100*mean(price_diff>0), 2), " %"), .before = 1) %>% 
+  sample_frac(0.1) %>% 
+  ggplot(aes(x = price_diff, fill = stat(x > 0))) +
+  stat_halfeye() +
+  geom_text(aes(x = 50, 0.05, label = perc)) +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  scale_fill_manual(values = c("gray80", "skyblue")) +
+  labs(x="difference of predicted price in €", y=NULL) +
+  theme(
+    legend.position = "bottom"
+  ) +
+  coord_cartesian(xlim = c(-250, 250))

@@ -330,6 +330,11 @@ property_type_levels <- df_airbnb2 %>%
   transmute(property_type = as.factor(room_type)) %>%
   pull() %>% levels()
 
+direct_effect_only <- c(
+  "bE", "bAccommodates", "bBedrooms", "bKitchen", "bDistTrainstation", "bGigabit", 
+  "bDishwasher", "bStove", "bMicrowave", "bWineglasses", "bFreezer", "bRefrigerator", "bWasher", "bDryer"
+)
+
 # ---- VISUALS ----
 
 bezirk_colors <- c(

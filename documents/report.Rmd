@@ -30,6 +30,8 @@ Examining the factors influencing Airbnb characteristics, such as prices, is par
 
 **TODO describe listings dataset and reviews dataset**
 **TODO show in which regions are the most airbnbs**
+**TODO describe (briefly!) geo datasets (crime rate, toilets, opnv, gigabit, lor, uwb)**
+**TODO **
 
 ## Data Description
 
@@ -135,7 +137,7 @@ plot_ly() %>%
 
 # Regression of the influence of Bezirk reputation
 
-```{r, include=FALSE}
+```{r, include=FALSE, cache=!full_refit}
 q25_mitte <- df_airbnb %>% filter(neighbourhood_group_cleansed == "Mitte") %>% 
   pull(price) %>% quantile(.25)
 q75_reinickendorf <- df_airbnb %>% filter(neighbourhood_group_cleansed == "Reinickendorf") %>% 
@@ -229,7 +231,7 @@ This section was written parallel to the personal revision of Bayesian regressio
 
 ## Simulation of base models
 
-```{r, include=FALSE}
+```{r, include=FALSE, cache=!full_refit}
 n <- 6306
 mean <- log(100)
 sd <- 0.5
@@ -387,7 +389,7 @@ A possible variable to include in the final model is the quality of residental a
 
 In \@ref(fig:dag-reputation-model-wohnlage) one can see a model with *Wohnlage* added as a covariable. Since *Wohnlage* influences reputation as well as price there is fork pattern. *Wohnlage* is a classical confounder [@mcelreath_statistical_2020, p. 189].
 
-```{r, include=FALSE}
+```{r, include=FALSE, cache=!full_refit}
 dag <- dagify(
   price ~ u + reputation + wohnlage,
   reputation ~ wohnlage,
@@ -428,7 +430,7 @@ Using a tool called dagitty [@textor_robust_2016] one can draw DAGs in the brows
 
 One could also be tempted to include the results of the review sentiment analysis in the regression model. Assuming that reviews are influenced by peoples expectations and their actual experience with an Airbnb visit one can argue that is influenced by price as well as by *Bezirk* reputation. If the price is high expectations are high as well. If the reputation of the *Bezirk* is good the expectations might be high even if the price is modest. The resulting model can be seen in Figure \@ref(fig:dag-reputation-model-wohnlage-reviews).
 
-```{r, include=FALSE}
+```{r, include=FALSE, cache=!full_refit}
 dag <- dagify(
   price ~ u + reputation + wohnlage,
   reputation ~ wohnlage,
@@ -497,7 +499,7 @@ The covariables framed by a purple rect are coming from various external data so
 
 Last we added more detailed information about the amenities in the Airbnbs that we extracted from the full detailed Airbnb dataset.
 
-```{r dag-reputation-full-model, echo=FALSE, message=FALSE, warning=FALSE, cache=full_refit, fig.cap="Full DAG.", fig.align='center', fig.dim = c(8, 8)}
+```{r dag-reputation-full-model, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Full DAG.", fig.align='center', fig.dim = c(8, 8)}
 gg_temp <- ((ggdag_status(full_dag, use_labels = "name", text = FALSE) + 
     scale_fill_manual(
       labels = c("exposure", "outcome", "latent"), 
@@ -522,7 +524,7 @@ plot(gg_temp)
 
 It seems plausible that crime rates influence the reputation of an district. And there are theories predicting higher crime rated for regions with lower living standards. Thus we get a new backdoor path there - but it is already closed when the model is adjusted for *Wohnlage* (see Figure \@ref(fig:dag-reputation-full-model-minimal-adjustment-set)). Crime rate is not included in the final models because it possibly explaines variance of *Bezirk* reputation and thus lower the covariance to price (precision parasite effect) as well as amplicate the bias of unobserved confounds between exposure and target.^[Closing all backdoor paths is not the only criteria to choose covariables on. There are other effects to consider.]
 
-```{r dag-reputation-full-model-minimal-adjustment-set, echo=FALSE, message=FALSE, warning=FALSE, cache=full_refit, fig.cap="Full DAG with minimal adjustment set. Only Wohnlage is nedded to close backdoor paths.", fig.align='center', fig.dim = c(8, 8)}
+```{r dag-reputation-full-model-minimal-adjustment-set, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Full DAG with minimal adjustment set. Only Wohnlage is nedded to close backdoor paths.", fig.align='center', fig.dim = c(8, 8)}
 (ggdag_adjustment_set(full_dag, use_labels = "name", text = FALSE, shadow = T) + 
   theme_dag() +
   theme(
@@ -532,31 +534,34 @@ It seems plausible that crime rates influence the reputation of an district. And
 
 Indicating that all variables but reviews should be included in the model shows no non-closed backdoor paths (see Figure \@ref(fig:dag-reputation-full-model-adjustment-set)). Thus the model might yield an unconfounded estimator for the effect of the *Bezirk* reputation. The reason to include other covariables than those from the minimal adjustment set is that we hope to reduce the variance in the Airbnb price by reducing the amount of unobserved sources of variance. Hopefully this leads to narrower posterior predictions to identify a possible causual effect of the *Bezirk* reutation.
 
-```{r dag-reputation-full-model-adjustment-set, echo=FALSE, message=FALSE, warning=FALSE, cache=full_refit, fig.cap="Full DAG with all covariables included in the model marked as adjusted. No new backdoor paths opened.", fig.align='center', fig.dim = c(8, 8)}
-(ggdag_adjustment_set(full_dag_adjusted, use_labels = "name", text = FALSE, shadow = T) + 
+```{r dag-reputation-full-model-adjustment-set, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Full DAG with all covariables included in the model marked as adjusted. No new backdoor paths opened.", fig.align='center', fig.dim = c(8, 8)}
+(ggdag_adjustment_set(full_dag_adjusted, use_labels = "name", text = FALSE, shadow = T) +
   theme_dag() +
   theme(
     legend.position = "bottom",
     strip.background = element_blank(),
     strip.text.x = element_blank()
-  )) %>% plot_arrows_on_top() 
+  )) %>% plot_arrows_on_top()
 ```
 
 ## Regression
 
-```{r, include=FALSE}
+```{r, include=FALSE, cache=!full_refit}
 base_model <- readRDS("saved_objects/base_model.rds")
 base_model_student <- readRDS("saved_objects/base_model_student.rds")
+
+max_pred_base <- base_model %>% spread_draws(mu, sigma, ndraws = 1000) %>% mutate(price = exp(rnorm(1000, mu, sigma))) %>% pull(price) %>% max()
+max_pred_base_student <- base_model_student %>% spread_draws(mu, sigma, ndraws = 1000) %>% mutate(price = exp(rstudent(1000, 2, mu, sigma))) %>% pull(price) %>% max()
 
 base_model_reputation_wohnlage <- readRDS("saved_objects/base_model_reputation_wohnlage.rds")
 base_model_reputation_wohnlage_student <- readRDS("saved_objects/base_model_reputation_wohnlage_student.rds")
 
-bezirk_levels <- df_airbnb2 %>% 
+bezirk_levels <- df_airbnb %>% 
   transmute(bezirk = as.factor(neighbourhood_group_cleansed)) %>% 
   pull() %>% levels()
 
-property_type_levels <- df_airbnb2 %>% 
-  transmute(property_type = as.factor(room_type)) %>% 
+property_type_levels <- df_airbnb %>%
+  transmute(property_type = as.factor(room_type)) %>%
   pull() %>% levels()
 ```
 
@@ -570,7 +575,7 @@ We will begin with the presentation of the most basic models and demonstrate som
 
 In Figure \@ref(fig:base-model-4x4) one can see the difference between the parameter estimation (distribution) of the mean price (left) and the posterior predictions for the distribution of Airbnb prices (right) for the model represented by Figure \@ref(fig:dag-base-model). It is clear that the distribution of the prices is much wider than the estimated distribution of the mean value since one has to exponentiate the result of the random sampling around the mean.
 
-Comparing the results from the model with $Normal(\mu, \sigma)$ distributed prices (top) with the results from the model that assumed $Student(2, \mu, \sigma)$ distributed prices (bottom) we find lower mean price for the student model. For the price distributions we find more Airbnb prices in the range (200 €, 400 €) for the normal model. In contrast we find thicker tails for the student model so more predictions about Airbnb prices higher than 400 €. The mean $\sigma$ value for the normal model is `r summary(base_model_student)[1,1]` and for the student model `r summary(base_model_student)[2,1]`. The maximum price for an Airbnb is `r base_model %>% spread_draws(mu, sigma, ndraws = 1000) %>%   mutate(price = exp(rnorm(1000, mu, sigma))) %>% pull(price) %>% max()` € and respective `r base_model_student %>% spread_draws(mu, sigma, ndraws = 1000) %>% mutate(price = exp(rstudent(1000, 2, mu, sigma))) %>% pull(price) %>% max()` €. For the studnet distribution we find more Airbnb prices predicted to be  around 0 €.
+Comparing the results from the model with $Normal(\mu, \sigma)$ distributed prices (top) with the results from the model that assumed $Student(2, \mu, \sigma)$ distributed prices (bottom) we find lower mean price for the student model. For the price distributions we find more Airbnb prices in the range (200 €, 400 €) for the normal model. In contrast we find thicker tails for the student model so more predictions about Airbnb prices higher than 400 €. The mean $\sigma$ value for the normal model is `r summary(base_model_student)[1,1]` and for the student model `r summary(base_model_student)[2,1]`. The maximum price for an Airbnb is `r max_pred_base` € and respective `r max_pred_base_student` €. For the studnet distribution we find more Airbnb prices predicted to be  around 0 €.
 
 ```{r base-model-4x4, echo=FALSE, message=FALSE, warning=FALSE, cache=full_refit, fig.cap="Comparing parameter estimations and posterior predictions (left vs right) and assumed normal and student distributed prices (top vs bottom). The x-axis is clipped at 800 €.", fig.align='center', fig.dim = c(8, 8)}
 set.seed(1337)
@@ -819,9 +824,9 @@ should crime rate be included? reduces variance of reputation? can have parasite
 
 In this section, we analyze the sentiments of reviews and titles using existing sentiment analysis tools. Most tools in this field are designed to work with only one language and provide inaccurate analyses for texts in other languages. Therefore, our first step was to use a language detection tool to identify the languages of all texts. Upon determining the languages, we found that our reviews mostly consist of English and German reviews.
 
-![Top 10 languages by review count](../documents/images/languages.png)
+![Top 10 languages by review count](images/languages.png)
 
-Due to the computational effort required to analyze reviews in all languages with our method (estimated 30 hours of computation time), we decided to analyze only the English and German texts.
+Due to the computational effort required to analyze reviews in all languages with our method (estimated 30 hours of computation time), we decided to analyze only the English and German texts. **das übersetzen hätte lange gebraucht, oder? Sonst erklärt sich kaum eine große Einsparung an sentiment analysis, da englisch und deutsch, ja bestimmt 50 % der reviews ausmachen**
 
 For sentiment analysis, we used the [VADER Sentiment Analysis tool](https://github.com/cjhutto/vaderSentiment) for English texts and the [German Sentiment tool](https://github.com/oliverguhr/german-sentiment) for German texts. We also considered translating all texts into English after detecting the language using translation libraries that access APIs like Google Translate, as well as translation models. However, this approach also posed computational challenges (estimated > 10 hours). Consequently, we chose to focus solely on the English and German texts.
 
@@ -837,7 +842,7 @@ Here are three examples demonstrating the German sentiment analysis tool along w
 
 To better understand the titles, we first performed a word analysis and filtered out the top entities from the titles.
 
-![Wordcloud of Titles](../documents/images/wordcloud_titles.png)
+![Wordcloud of Titles](images/wordcloud_titles.png)
 
 From this, we can see that the most commonly used entities are the names of neighborhoods, which also have the most Airbnbs. Additionally, positive adjectives like "cozy" or "stylish" are often used in the titles of Airbnbs.
 
@@ -852,9 +857,11 @@ ggplot(df_listings, aes(x = sentiment_for_name)) +
 
 Here we can see that there are also some negative sentiments in the titles. This raises the question of what impact the sentiment of a title has on the price of an Airbnb. Does the sentiment of a title matter or could there be potential advantages to having a negative sentiment?
 
+**Beispiele für negativ eingestufte titel?**
+
 ### Impact of title sentiments on price
 
-Since we have some outliers in the price data, we will examine the price either within its 95% confidence interval or the log price. The 95% confidence interval is a range within which we expect the true price to lie 95% of the time, giving us a more reliable estimate by reducing the impact of extreme values. The following figures show the price of Airbnbs across different sentiment categories.
+Since we have some outliers in the price data, we will examine the price either within its 95% confidence interval or the log price. The 95% confidence interval is a range within which we expect the true price to lie 95% of the time, giving us a more reliable estimate by reducing the impact of extreme values. The following figures show the price of Airbnbs across different sentiment categories. **ich weiß nicht, ob ich das so sagen würde. Es ist ja hier noch gar keine Vorhersage, sondern konkrete daten oder? dann würde ich nicht confidence interval sagen. Und auf der logscala passen doch auch alle preise in die grafik oder?**
 
 ```{r violinPlotLogTitles, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Prices (log) of title sentiments", fig.align='center'}
 ggplot(df_listings_cleaned, aes(x = sentiment_for_name, y = log_price, fill = sentiment_for_name)) +
@@ -864,13 +871,13 @@ ggplot(df_listings_cleaned, aes(x = sentiment_for_name, y = log_price, fill = se
   theme_minimal()
 ```
 
-When comparing sentiments with the log price, we can see that the prices of Airbnbs with negative sentiments are almost identical to those with neutral sentiments. Most reviews for both categories fall within a price between **4.3** and **4.9**. For positive sentiments, we observe a slightly different pattern. The number of high priced Airbnbs decreases earlier than in the negative and neutral categories, although the decline is less steep. This indicates that there are more Airbnbs with positive titles at higher prices.
+When comparing sentiments with the log price, we can see that the prices of Airbnbs with negative sentiments are almost identical to those with neutral sentiments. Most reviews for both categories fall within a price between **4.3** and **4.9**. For positive sentiments, we observe a slightly different pattern. The number of high priced Airbnbs decreases earlier than in the negative and neutral categories, although the decline is less steep. This indicates that there are more Airbnbs with positive titles at higher prices. **anhand der boxplots würde ich ja auch sagen, dass bei den höherpreisigen wohnungen mehr liegen für good sentiment**
 
 ```{r violinPlotCITitles, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Prices (95% CI) of title sentiments", fig.align='center'}
 mean_price <- mean(df_listings_cleaned$price)
-mean_price
+# mean_price
 sd_price <- sd(df_listings_cleaned$price)
-sd_price
+# sd_price
 z99 <- qnorm(0.975)
 ci_low <- mean_price - z99 * sd_price / sqrt(nrow(df_listings_cleaned))
 ci_high <- mean_price + z99 * sd_price / sqrt(nrow(df_listings_cleaned))
@@ -885,7 +892,7 @@ ggplot(df_filtered, aes(x = sentiment_for_name, y = price, fill = sentiment_for_
   theme_minimal()
 ```
 
-If we take a look at the actual prices within the 95% confidence interval. Here, we can see a difference between negative and neutral sentiments. Prices for Airbnbs with negative sentiments are more evenly distributed than those with positive or neutral sentiments. Additionally, Airbnbs with neutral sentiments almost all have prices around 125€. For positive sentiments, we can see that there are more Airbnbs with higher prices compared to those with neutral or negative sentiments.
+If we take a look at the actual prices within the 95% confidence interval. Here, we can see a difference between negative and neutral sentiments. Prices for Airbnbs with negative sentiments are more evenly distributed than those with positive or neutral sentiments. Additionally, Airbnbs with neutral sentiments almost all have prices around 125€. For positive sentiments, we can see that there are more Airbnbs with higher prices compared to those with neutral or negative sentiments. **hier könnte es sinn machen, statt violinplots mit density approx mal auf histogramm artige darstellungen zu schauen**
 
 In conclusion, there are small differences in price between the title sentiments. For Airbnb hosts it might be advantageous to use a positive sentiment in their titles to slightly increase the price. However, this would only be a minor factor. More important factors are likely to revolve around the preview images of an Airbnb.
 
@@ -908,11 +915,14 @@ We hypothesize that many reviews cover both positive and negative aspects, leadi
 
 As with the titles, we analyzed the log price and the 95% confidence interval for review sentiments.
 [INSERT LOG PRICE IMAGE]
+
+**zwischen title und review sentiments unterschieden in fig captions und text? irgendwie kalr machen, auf wie vielen datenpunkten die violinen jeweils beruhen, da dies doch recht untershciedlich ist?**
+
 ```{r violinPlotsReviewPrices, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Prices of review sentiments", fig.align='center'}
 mean_price <- mean(df_listings_cleaned$price)
-mean_price
+# mean_price
 sd_price <- sd(df_listings_cleaned$price)
-sd_price
+# sd_price
 z99 <- qnorm(0.975)
 ci_low <- mean_price - z99 * sd_price / sqrt(nrow(df_listings_cleaned))
 ci_high <- mean_price + z99 * sd_price / sqrt(nrow(df_listings_cleaned))
@@ -935,7 +945,7 @@ ci_price <- ggplot(df_filtered, aes(x = sentiment, y = price, fill = sentiment))
 grid.arrange(log_price, ci_price, ncol=2)
 ```
 
-In the log price distribution, we observe a similar pattern to that seen with the titles. However, the price for Airbnbs with negative sentiments tends to be in a higher range compared to those with neutral or positive sentiments.  
+In the log price distribution, we observe a similar pattern to that seen with the titles. However, the price for Airbnbs with negative sentiments tends to be in a higher range compared to those with neutral or positive sentiments. **kann selections effekt sein. schlecht restaurant überleben, wo es viele turois gibt trotzdem. also können auch schlechte airbnbs teuer in prenzlauerberg liegen und es kommen trotzdem gäste - zwar nur ein mal, aber es werdn schon neue kommen xD gute restaurants überleben hingegen auch in der wallachei**  
 The confidence interval price image provides a more precise view. Similar to the titles, the prices for Airbnbs with positive and negative review sentiments are almost identical. However, we can clearly see that negative sentiments are associated with a significant proportion of higher priced listings. This might be due to the fact that some higher priced Airbnbs do not necessarily offer better services compared to more affordable options that provide similar amenities. Customers may expect higher quality from more expensive listings and feel disappointed if those expectations are not met.
 
 ### Verteilung der Sentiments auf die Bezirke TODO
@@ -953,7 +963,7 @@ This section aims to explore how sentiments are distributed across different nei
 Nimmt die Jahreszeit einen Einfluss auf das Sentiment der Reviews?
 
 ### How language affects sentiments
-In this section, we aim to investigate whether English and German users behave differently in their reviews and Airbnb selection. Specifically, we want to determine if German or English users are differ in their ratings and if there are preferred neighborhoods among either group. We don't have individual user ratings in our data, only the average rating for each Airbnb. Therefore, we use the sentiment of the reviews to analyze and understand the rating trends.
+In this section, we aim to investigate whether English and German users behave differently in their reviews and Airbnb selection. Specifically, we want to determine if German or English users differ in their ratings and if there are preferred neighborhoods among either group. We don't have individual user ratings in our data, only the average rating for each Airbnb. Therefore, we use the sentiment of the reviews to analyze and understand the rating trends.
 
 #### Distribution of languages across neighborhoods
 We examined the distribution of English and German reviews across different neighborhoods to determine if German and English tourists show different preferences in their neighborhood choices. The following legend shows the mapping from percentages to colors.

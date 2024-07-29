@@ -121,7 +121,8 @@ plot_ly() %>%
   add_sf(
     data = opnv_stations_no_tram_berlin,
     name = 'Station',
-    hoverinfo='skip'
+    hoverinfo='skip',
+    color = I("red")
   ) %>% 
   add_markers(
     data = df_airbnb,
@@ -658,7 +659,7 @@ ggpubr::ggarrange(
 
 To get an estimation of the causual effect of the *Bezirks* reputation it is necessary to inspect contrast plots (see Figure \@ref(fig:base-model-rep-wol-parameter-contrasts)). To limit the amount of comparisons the districts *Mitte* (high prices), *Neukölln* and *Tempelhof-Schöneberg* (medium prices) as well as *Reinickendorf* (low prices) have been selected. It can be seen that the mean price (aggregated over all *Wohnlagen*^[To be correct one would have to select prices according to the distribution of the *Wohnlage* values per district. It was assumed that they all make up one third in each distric to simplify the analysis.]) differ by more than 10 € for all comparisons but for the apir *Neukölln* and *Tempelhof*. One could conclude that teleporting an Airbnb from *Reinickendorf* to *Mitte* allows for a price increase of around 50 €.
 
-```{r base-model-rep-wol-parameter-contrasts, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Bla.", fig.align='center', fig.dim = c(8, 6)}
+```{r base-model-rep-wol-parameter-contrasts, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Comparing predictions for mean prices aggregated over values of *Wohnlagen*.", fig.align='center', fig.dim = c(8, 6)}
 bdat <- base_model_reputation_wohnlage_post %>% 
   pivot_wider(names_from = "wohnlage", values_from = "delta", names_prefix = "wol_") %>% 
   mutate(
@@ -836,7 +837,7 @@ full_model_post %>%
 
 Since even the price distributions for mean prices spread out above 200 € it gets pretty hard to get any idea about differences caused by *Bezirk* reputation. In Figure \@ref(fig:full-model-parameter-contrasts) we find the contrasts aggregated over all levels of *Wohnlage* and property types. In this case none of the comparisons of the estimated mean prices is free of overlap. Interestingly it seems like *Neukölln* is now more similar to *Mitte* than to *Tempelhof-Schöneberg*. In fact *Neukölln* seems to be even more expensive than *Mitte*. A possible explanantion for this could be the amenities. If the Airbnbs in *Mitte* have better amenities than in *Neuköln* this can explain the higher prices found at the first inspection of the data.
 
-```{r full-model-parameter-contrasts, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Bla.", fig.align='center', fig.dim = c(8, 6)}
+```{r full-model-parameter-contrasts, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Comparing predictions for mean prices aggregated over values of *Wohnlagen* and property type.", fig.align='center', fig.dim = c(8, 6)}
 bdat <- full_model_post %>% 
   pivot_wider(names_from = "wohnlage", values_from = "delta", names_prefix = "wol_") %>% 
   mutate(
@@ -885,7 +886,7 @@ res1 %>% bind_cols(
 
 In Figure \@ref(fig:full-model-parameter-roomtype-contrasts) the mean price diistributions are inspected seperated by property type. One can see that the clear distinction in mean price is found for entire homes/apartments, as well as for private and hotel rooms. In contrats the difference for a shared romm is much smaller among the districts.
 
-```{r full-model-parameter-roomtype-contrasts, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Bla.", fig.align='center', fig.dim = c(8, 8)}
+```{r full-model-parameter-roomtype-contrasts, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Comparing predictions for mean prices aggregated over values of *Wohnlagen* but separated by property type.", fig.align='center', fig.dim = c(8, 8)}
 area <- 10
 res1 %>% bind_cols(
   bdat %>% select(-starts_with("price_")) # %>% rename(wohnlage = name)
@@ -928,7 +929,7 @@ full_model_post %>%
 
 From the contrasts plot aggregated over *Wohnlage* and property type (see Figure \@ref(fig:full-model-pred-contrasts)) one can see that the probability to find a cheaper Airbnb (with equal amenities and size) decreaded from 73 % to 65 % for the pair *Mitte*-*Reinickendorf* but increased slightly from 66 % to 67 % for the pair *Neukölln*-*Reinickendorf*. In general the probability to find a difference came closer to 50 %. Thus the causual effect of *Bezirk* reputation seems to be smaller than estimated with the model only accounting for the minimal adjustment set. This seems plausible since we possibly compared luxurious Airbnb against more simple ones before. Now the model can account for these sources of variance in the target variable.
 
-```{r full-model-pred-contrasts, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Bla.", fig.align='center', fig.dim = c(8, 6)}
+```{r full-model-pred-contrasts, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Comparing posterior predictions for Airbnb prices aggregated over values of *Wohnlagen* and property type.", fig.align='center', fig.dim = c(8, 6)}
 bdat <- full_model_post %>% 
   pivot_wider(names_from = "wohnlage", values_from = "delta", names_prefix = "wol_") %>% 
   rowwise() %>% 
@@ -986,7 +987,7 @@ p_safe_10 <- (df_temp %>% group_by(name, property_type) %>% summarise(p_safe_10 
 
 Inspecting the posterior predictions separated by property type (see Figure \@ref(fig:full-model-pred-roomtype-contrasts)) does not show new interesting patterns. This was different when the mean price distributions were inspected.
 
-```{r full-model-pred-roomtype-contrasts, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Bla.", fig.align='center', fig.dim = c(8, 8)}
+```{r full-model-pred-roomtype-contrasts, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Comparing posterior predictions for Airbnb prices aggregated over values of *Wohnlagen* but separated by property type.", fig.align='center', fig.dim = c(8, 8)}
 df_temp %>% left_join(
   df_temp %>% group_by(name, property_type) %>% summarise(p_safe = round(100*mean(price_diff > 0),1)) %>% 
     mutate(p_safe = str_c(p_safe, " %"))
@@ -1001,6 +1002,52 @@ df_temp %>% left_join(
   facet_wrap(~property_type) +
   theme(
     legend.position = "bottom"
+  )
+```
+
+### Conclusion
+
+In Figure \@ref(fig:comparing-median-prices) on can see the median prices for Airbnbs as found in the real dataset and predicted from the full model. The differences probably can be explained by the fact that the model predictions assume Airbnbs that are are equally big with equal amenities. The difference between the predicted median prices by the full model can be interpreted as caused by the effect of *Bezirks* reputation. The fact that the median price for Airbnbs in *Spandau* is the highest was somewhat surprising. My personal expectations were:
+
+1. Neukölln, Mitte, Friedrichshain-Kreuzberg
+1. Pankow, Charlottenburg-Wilmersdorf
+1. Steglitz-Zehlendorf, Templehof-Schöneberg, Treptow-Köpenick
+1. Lichtenberg
+1. Marzahn-Hellersdorf, Reinickendorf
+
+```{r comparing-median-prices, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Comparing the median prices for Airbnbs found in the raw data with predictions from the full model.", fig.align='center', fig.dim = c(6, 6)}
+df_temp <- full_model_post %>%
+  pivot_wider(names_from = "wohnlage", values_from = "delta", names_prefix = "wol_") %>% 
+  rowwise() %>% 
+  mutate(
+    price_wol_1 = exp(rnorm(1, reputation+bE*(wol_1)+bPT, sigma)),
+    price_wol_2 = exp(rnorm(1, reputation+bE*(wol_1+wol_2)+bPT, sigma)),
+    price_wol_3 = exp(rnorm(1, reputation+bE*(wol_1+wol_2+wol_3)+bPT, sigma))
+  ) %>% pivot_longer(cols = starts_with("price_"), values_to = "price", names_prefix = "price_wol_", names_to = "wohnlage") %>% 
+  mutate(bezirk = bezirk_levels[bezirk], property_type = property_type_levels[property_type]) %>% 
+  group_by(bezirk) %>% summarise(median_price = median(price)) %>% 
+  arrange(median_price) %>% rowid_to_column() %>% 
+  mutate(type = "full model") %>% 
+  bind_rows(
+    df_airbnb %>% group_by(neighbourhood_group_cleansed) %>%
+      summarise(median_price = median(price)) %>% 
+      arrange(median_price) %>% rowid_to_column() %>% 
+      mutate(type = "raw data") %>% rename(bezirk = neighbourhood_group_cleansed)
+  ) %>% mutate(
+    median_price = round(median_price),
+    type = fct_rev(ordered(type))
+    )
+
+CGPfunctions::newggslopegraph(
+  dataframe = df_temp,
+  Times = type,
+  Measurement = median_price,
+  Grouping = bezirk,
+  Title = NULL,
+  SubTitle = NULL,
+  Caption = NULL,
+  ThemeChoice = "gdocs",
+  LineColor = bezirk_colors
   )
 ```
 
@@ -1026,11 +1073,9 @@ For *Wohnlage* the estimated parameter only can be interpreted as the direct eff
 * gigabit supply
 * distance to next train stations
 
-The mean of the parameter estimation as well as indicators of their distribution width can be found in \@ref(tab:full-model-parameter-summary). This table also indicates if the parameter can be interpreted as total and direct causal effect or only as direct causal effect. The table is linked with Figure \@ref(fig:full-model-parameter-contrasts-interactive) and Figure \@ref(fig:full-model-pred-contrasts-interactive) which show the contrast plots for the selected covariable. Figure \@ref(fig:full-model-parameter-contrasts-interactive) shows the effect on the mean price while Figure \@ref(fig:full-model-pred-contrasts-interactive) shows the effect for the predicted actual prices.^[It might be necassary to zoom a little bit out to see all three depending on the size and resolution of the screen. Since the interactive plotly apps produce a lot of data that has to be stored and loaded in the HTML document the densities are generated by 20 data points per parameter only. The percentages are computed on all data points and thus more precise.]
+```{r prepare-interactive-data, include=FALSE, cache=!full_refit}
+ndraw <- 30
 
-The model is often pretty sure that the mean price for an Airbnb with a selected amenity (or with an increased value by one standard deviation for a numeric predictor) is higher (or lower). Nevertheless, the model is much less certein that prices actually found in reality will be higher (or lower) for most Airbnbs. E.g. the model is 100 % certain that an Airbnb with balcony is in general (mean) more expensive than one without. But it predicts only a 55 % probability that for a given pair of Airbnbs the one with a a balcony is more expensive than one without. For an Airbnb where a number of accommodates is one standard deviation higher than for the population mean the model is 100 % certain that the mean price is higher. For an actual pair it predicts 64 % probability that the Airbnb with space for more accommodates ist more expensive.
-
-```{r prepare-interactive-data, include=FALSE, cache=FALSE}
 full_model_verbose_post_summary <- readRDS("saved_objects/full_model_verbose_post_summary.rds") %>% 
   select(-rhat, -ess_bulk) %>% 
   filter(!str_starts(parameter, "delta")) %>% 
@@ -1051,7 +1096,7 @@ full_model_verbose_post_long <- full_model_verbose_post %>%
   mutate(price_diff = exp(log_price+value)-exp(log_price)) %>%
   group_by(name) %>% 
   mutate(perc = str_c(round(100*mean(price_diff>0), 2), " %")) %>% 
-  sample_n(20) %>% 
+  sample_n(ndraw) %>% 
   ungroup() %>% 
   select(name, price_diff, perc)
 
@@ -1068,10 +1113,14 @@ full_model_verbose_post_long_pred <- full_model_verbose_post %>%
   mutate(price_diff = exp(rnorm(1, log_price+value, sigma))-exp(rnorm(1, log_price, sigma))) %>%
   group_by(name) %>% 
   mutate(perc = str_c(round(100*mean(price_diff>0), 2), " %")) %>% 
-  sample_n(20) %>% 
+  sample_n(ndraw) %>% 
   ungroup() %>% 
   select(name, price_diff, perc)
 ```
+
+The mean of the parameter estimation as well as indicators of their distribution width can be found in \@ref(tab:full-model-parameter-summary). This table also indicates if the parameter can be interpreted as total and direct causal effect or only as direct causal effect. The table is linked with Figure \@ref(fig:full-model-parameter-contrasts-interactive) and Figure \@ref(fig:full-model-pred-contrasts-interactive) which show the contrast plots for the selected covariable. Figure \@ref(fig:full-model-parameter-contrasts-interactive) shows the effect on the mean price while Figure \@ref(fig:full-model-pred-contrasts-interactive) shows the effect for the predicted actual prices.^[It might be necassary to zoom a little bit out to see all three depending on the size and resolution of the screen. Since the interactive plotly apps produce a lot of data that has to be stored and loaded in the HTML document the densities are generated by `r ndraw` data points per parameter only. The percentages are computed on all data points and thus more precise.]
+
+The model is often pretty sure that the mean price for an Airbnb with a selected amenity (or with an increased value by one standard deviation for a numeric predictor) is higher (or lower). Nevertheless, the model is much less certein that prices actually found in reality will be higher (or lower) for most Airbnbs. E.g. the model is 100 % certain that an Airbnb with balcony is in general (mean) more expensive than one without. But it predicts only a 55 % probability that for a given pair of Airbnbs the one with a a balcony is more expensive than one without. For an Airbnb where a number of accommodates is one standard deviation higher than for the population mean the model is 100 % certain that the mean price is higher. For an actual pair it predicts 64 % probability that the Airbnb with space for more accommodates ist more expensive.
 
 ```{r interactive-contrasts, echo=FALSE, message=FALSE, warning=FALSE, cache=FALSE, results="asis"}
 cat(
@@ -1096,12 +1145,6 @@ shared_trt2 <- SharedData$new(
   full_model_verbose_post_long_pred %>% rename(parameter = name), 
   key = ~parameter, group = "shared_obj")
 
-# send the group to the filtering selection box
-# filter_select(
-#   id = "id-selector", label = "ID", 
-#   sharedData = shared_demo, group = ~parameter
-# )
-
 datatable(
   shared_demo,
   selection = 'single'
@@ -1110,7 +1153,6 @@ datatable(
     columns = 2:5,
     digits = 2
   )
-# datatable(shared_trt)
 ```
 
 ```{r full-model-parameter-contrasts-interactive, echo=FALSE, message=FALSE, warning=FALSE, cache=FALSE, fig.cap="Contrasts of parameter estimations. The percentage indicates the probability to find an Airbnb with the chosen characteristic that is more expensive than an Airbnb without the characteristic.", fig.align='center', fig.dim = c(8, 3)}
@@ -1122,7 +1164,8 @@ gg_param <- shared_trt %>%
   labs(x="difference of mean price in €", y=NULL) +
   theme(
     legend.position = "bottom"
-  )
+  ) +
+  coord_cartesian(xlim = c(-25, 25))
 
 ggplotly(gg_param)
 ```
@@ -1131,12 +1174,13 @@ ggplotly(gg_param)
 gg_pred <- shared_trt2 %>% 
   ggplot(aes(x = price_diff, group = parameter)) +
   geom_density(fill = "skyblue") +
-  geom_text(aes(x = 250, 0.005, label = perc, group = parameter), hjust=0.5, vjust=0.5) +
+  geom_text(aes(x = 200, 0.005, label = perc, group = parameter), hjust=0.5, vjust=0.5) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   labs(x="difference of mean price in €", y=NULL) +
   theme(
     legend.position = "bottom"
-  )
+  ) +
+  coord_cartesian(xlim = c(-250, 250))
 
 ggplotly(gg_pred)
 ```

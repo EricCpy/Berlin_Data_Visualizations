@@ -1876,29 +1876,6 @@ full_model_post %>%
 
 full_model_post %>%
   pivot_wider(names_from = "wohnlage", values_from = "delta", names_prefix = "wol_") %>% 
-  mutate(
-    price_wol_1 = exp(reputation+bE*(wol_1)+bPT),
-    price_wol_2 = exp(reputation+bE*(wol_1+wol_2)+bPT),
-    price_wol_3 = exp(reputation+bE*(wol_1+wol_2+wol_3)+bPT)
-  ) %>% pivot_longer(cols = starts_with("price_"), values_to = "price", names_prefix = "price_wol_", names_to = "wohnlage") %>% 
-  mutate(bezirk = bezirk_levels[bezirk], property_type = property_type_levels[property_type]) %>% 
-  group_by(bezirk) %>% summarise(median_price = median(price)) %>% 
-  arrange(median_price) %>% rowid_to_column() %>% 
-  mutate(type = "full model") %>% 
-  bind_rows(
-    df_airbnb %>% group_by(neighbourhood_group_cleansed) %>%
-      summarise(median_price = median(price)) %>% 
-      arrange(median_price) %>% rowid_to_column() %>% 
-      mutate(type = "raw data") %>% rename(bezirk = neighbourhood_group_cleansed)
-  ) %>% 
-  ggplot() +
-  geom_col(aes(x = median_price, y = bezirk, group = type, fill = as.ordered(rowid), color = type), 
-           position = "dodge2", size = 1)
-
-
-
-full_model_post %>%
-  pivot_wider(names_from = "wohnlage", values_from = "delta", names_prefix = "wol_") %>% 
   rowwise() %>% 
   mutate(
     price_wol_1 = exp(rnorm(1, reputation+bE*(wol_1)+bPT, sigma)),
@@ -2362,3 +2339,48 @@ full_model_verbose_post %>%
     legend.position = "bottom"
   ) +
   coord_cartesian(xlim = c(-250, 250))
+
+#### final plot 
+
+df_temp <- full_model_post %>%
+  pivot_wider(names_from = "wohnlage", values_from = "delta", names_prefix = "wol_") %>% 
+  rowwise() %>% 
+  mutate(
+    price_wol_1 = exp(rnorm(1, reputation+bE*(wol_1)+bPT, sigma)),
+    price_wol_2 = exp(rnorm(1, reputation+bE*(wol_1+wol_2)+bPT, sigma)),
+    price_wol_3 = exp(rnorm(1, reputation+bE*(wol_1+wol_2+wol_3)+bPT, sigma))
+  ) %>% pivot_longer(cols = starts_with("price_"), values_to = "price", names_prefix = "price_wol_", names_to = "wohnlage") %>% 
+  mutate(bezirk = bezirk_levels[bezirk], property_type = property_type_levels[property_type]) %>% 
+  group_by(bezirk) %>% summarise(median_price = median(price)) %>% 
+  arrange(median_price) %>% rowid_to_column() %>% 
+  mutate(type = "full model") %>% 
+  bind_rows(
+    df_airbnb %>% group_by(neighbourhood_group_cleansed) %>%
+      summarise(median_price = median(price)) %>% 
+      arrange(median_price) %>% rowid_to_column() %>% 
+      mutate(type = "raw data") %>% rename(bezirk = neighbourhood_group_cleansed)
+  ) %>% mutate(
+    median_price = round(median_price),
+    type = fct_rev(ordered(type))
+    )
+
+df_temp %>% 
+  ggplot() +
+  geom_col(aes(x = median_price, y = bezirk, group = type, fill = as.ordered(rowid), color = type), 
+           position = "dodge2", size = 1)
+
+# install.packages("CGPfunctions")
+# install.packages("ggthemes")
+library(CGPfunctions)
+
+CGPfunctions::newggslopegraph(
+  dataframe = df_temp,
+  Times = type,
+  Measurement = median_price,
+  Grouping = bezirk,
+  Title = NULL,
+  SubTitle = NULL,
+  Caption = NULL,
+  ThemeChoice = "gdocs",
+  LineColor = bezirk_colors
+  )

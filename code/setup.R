@@ -12,6 +12,7 @@ library(tidybayes)
 library(tidybayes.rethinking)
 library(rio)
 library(gridtext)
+library(RColorBrewer)
 
 source("code/helper_functions.R")
 source("code/data_etl.R")

@@ -267,10 +267,12 @@ df_percentage <- df_review_sentiments %>%
 
 ggplot(df_percentage, aes(x = language, y = percentage, fill = sentiment)) +
   geom_bar(stat = "identity", position = "dodge") +
+  scale_fill_manual(values = c("negative" = "red", "positive" = "green", "neutral" = "blue")) +
   labs(title = "Percentage of Sentiments by Language",
        x = "Language",
        y = "Percentage") +
-  theme_minimal()
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
 
 # conclusion: most reviews are positive and germans have more negative reviews, 
 # but we cant really compare these results because we used different sentiment analyizers for different languages

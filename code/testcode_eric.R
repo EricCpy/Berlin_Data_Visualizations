@@ -1,6 +1,8 @@
 source("code/setup.R")
 
 # Sentiment Analysis
+test <- df_review_sentiments[df_review_sentiments$sentiment_for_name == "negative", c("name", "sentiment_for_name")]
+
 # TOP 10 languages
 df_review_languages <- read.csv("./data/airbnb/March_2024/review_sentiments_languages.csv")
 language_counts <- df_review_languages %>%
@@ -183,8 +185,75 @@ grid.arrange(plot_ger, plot_eng, ncol=3)
 # ---- END OF VISUALIZATION: are there more english airbnbs in some districts, review ratings in these districts by english reviews ----
 
 # ---- START OF VISUALIZATION: in which months/years are more english/german reviews, where are the peaks in reviews ----
-# TODO REPORT
-# TODO -- same as sentiment year/month --
+df_english_reviews <- df_review_sentiments %>%
+  filter(language == "en")
+
+df_german_reviews <- df_review_sentiments %>%
+  filter(language == "de")
+
+overall_yearly_sentiment_en <- df_english_reviews %>%
+  group_by(year) %>%
+  summarize(number_of_reviews = n() / nrow(df_english_reviews), .groups = 'drop')
+
+overall_yearly_sentiment_de <- df_german_reviews %>%
+  group_by(year) %>%
+  summarize(number_of_reviews = n() / nrow(df_english_reviews), .groups = 'drop')
+
+ggplot(overall_yearly_sentiment_en, aes(x = year, y = mean_sentiment)) +
+  geom_line(group = 1, color = "blue") +
+  geom_point(color = "blue") +
+  scale_x_continuous(breaks = seq(min(overall_yearly_sentiment_en$year), 
+                                  max(overall_yearly_sentiment_en$year), 
+                                  by = 1)) + 
+  labs(title = "Mean Sentiment Score Over the Years (English Reviews)",
+       x = "Year", y = "Mean Sentiment Score") +
+  theme_minimal()
+
+# Plot for German reviews
+ggplot(overall_yearly_sentiment_de, aes(x = year, y = mean_sentiment)) +
+  geom_line(group = 1, color = "red") +
+  geom_point(color = "red") +
+  scale_x_continuous(breaks = seq(min(overall_yearly_sentiment_de$year), 
+                                  max(overall_yearly_sentiment_de$year), 
+                                  by = 1)) + 
+  labs(title = "Mean Sentiment Score Over the Years (German Reviews)",
+       x = "Year", y = "Mean Sentiment Score") +
+  theme_minimal()
+
+df_english_reviews$month <- as.numeric(format(df_english_reviews$date, "%m"))
+df_german_reviews$month <- as.numeric(format(df_german_reviews$date, "%m"))
+
+overall_monthly_sentiment_en <- df_english_reviews %>%
+  group_by(month) %>%
+  summarize(mean_sentiment = mean(sentiment_score), .groups = 'drop')
+
+# For German reviews
+overall_monthly_sentiment_de <- df_german_reviews %>%
+  group_by(month) %>%
+  summarize(mean_sentiment = mean(sentiment_score), .groups = 'drop')
+
+month_labels <- setNames(month.abb, 1:12)
+
+# Plot for English reviews
+ggplot(overall_monthly_sentiment_en, aes(x = month, y = mean_sentiment)) +
+  geom_line(group = 1, color = "blue") +
+  geom_point(color = "blue") +
+  labs(title = "Mean Sentiment Score Over the Months (English Reviews)",
+       x = "Month", y = "Mean Sentiment Score") +
+  scale_x_continuous(breaks = 1:12, labels = month_labels) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+# Plot for German reviews
+ggplot(overall_monthly_sentiment_de, aes(x = month, y = mean_sentiment)) +
+  geom_line(group = 1, color = "red") +
+  geom_point(color = "red") +
+  labs(title = "Mean Sentiment Score Over the Months (German Reviews)",
+       x = "Month", y = "Mean Sentiment Score") +
+  scale_x_continuous(breaks = 1:12, labels = month_labels) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
 # ---- END OF VISUALIZATION: in which months are more english/german reviews, where are the peaks in reviews ----
 
 # ---- START OF VISUALIZATION: english vs german reviews/ratings, are german reviews/expectations lower/higher ----
@@ -209,7 +278,6 @@ ggplot(df_percentage, aes(x = language, y = percentage, fill = sentiment)) +
 # ---- END OF VISUALIZATION: english vs german reviews, are german reviews/expectations lower/higher -----
 
 # ---- START OF VISUALIZATION: review sentiments over time ----
-# TODO REPORT Verteilung der Sentiments über Jahre und Monate
 library(RColorBrewer)
 color_palette <- brewer.pal(n = length(unique(df_review_sentiments$neighbourhood_group_cleansed)), name = "Set3")
 df_review_sentiments$date <- as.Date(df_review_sentiments$date, format = "%Y-%m-%d")
@@ -285,8 +353,7 @@ ggplot() +
 # ---- END OF VISUALIZATION: review sentiments over time ----
 
 # ---- START OF VISUALIZATION:  map price to review sentiment to rating in dataset ----
-# TODO REPORT Wie verhält sich das Sentiment zum Rating
-ggplot(df_listings_cleaned_with_review_sentiment, aes(x = price, y = review_scores_rating)) +
+rating_plot <- ggplot(df_listings_cleaned_with_review_sentiment, aes(x = review_scores_rating, y = price)) +
   geom_point() +
   geom_smooth(method = "lm") +
   labs(
@@ -294,12 +361,9 @@ ggplot(df_listings_cleaned_with_review_sentiment, aes(x = price, y = review_scor
     x = "Price",
     y = "Rating Score"
   ) +
-  theme_minimal() +
-  theme(
-    legend.position = "bottom"  # Position the legend at the bottom
-  )
+  theme_minimal()
 
-ggplot(df_listings_cleaned_with_review_sentiment, aes(x = price, y = median_sentiment_score_for_reviews)) +
+sentiment_plot <- ggplot(df_listings_cleaned_with_review_sentiment, aes(x = mean_sentiment_score_for_reviews, y = price)) +
   geom_point() +
   geom_smooth(method = "lm") +
   labs(
@@ -307,15 +371,14 @@ ggplot(df_listings_cleaned_with_review_sentiment, aes(x = price, y = median_sent
     x = "Price",
     y = "Review Sentiment Score"
   ) +
-  theme_minimal() +
-  theme(
-    legend.position = "bottom"  # Position the legend at the bottom
-  )
+  theme_minimal()
+
+grid.arrange(rating_plot, sentiment_plot, ncol=2)
 
 
 # correlation between price and rating
 summary(aov(review_scores_rating ~ neighbourhood_group_cleansed, data=df_listings_cleaned_with_review_sentiment))
-summary(aov(median_sentiment_score_for_reviews ~ neighbourhood_group_cleansed, data=df_listings_cleaned_with_review_sentiment))
+summary(aov(mean_sentiment_score_for_reviews ~ neighbourhood_group_cleansed, data=df_listings_cleaned_with_review_sentiment))
 
 ggplot(df_listings_cleaned_with_review_sentiment, aes(x = price, y = review_scores_rating)) +
   geom_point(aes(color = neighbourhood_group_cleansed), alpha = 0.6) +
@@ -350,13 +413,12 @@ ggplot(df_listings_cleaned_with_review_sentiment, aes(x = price, y = median_sent
 
 
 # test to see which variable has stronger influence on price / is more significant
-model_both <- lm(price ~ review_scores_rating + median_sentiment_score_for_reviews + I(median_sentiment_score_for_reviews^2), data = df_listings_cleaned_with_review_sentiment)
+model_both <- lm(price ~ review_scores_rating + mean_sentiment_score_for_reviews, data = df_listings_cleaned_with_review_sentiment)
 summary(model_both)
 
 # ---- END OF VISUALIZATION:  map price to review sentiment to rating in dataset ----
 
 # ---- START OF VISUALIZATION: map reviews in region by sentiment -----
-# TODO REPORT Verteilung der Sentiments auf die Bezirke
 region_sentiment_scores <- df_listings_cleaned_with_review_sentiment %>%
   group_by(neighbourhood_group_cleansed) %>%
   summarize(sentiment_region_score = mean(mean_sentiment_score_for_reviews))
@@ -426,7 +488,6 @@ ggplot(region_sentiment_scores, aes(x = reorder(neighbourhood_group_cleansed, se
 # ---- END OF VISUALIZATION: map reviews in region by price segments -----
 
 # ---- START OF VISUALIZATION: map reviews in region by number ----
-# TODO REPORT Verteilung der Sentiments auf die Bezirke
 listings_per_bezirk <- df_listings_cleaned_with_review_sentiment %>%
   group_by(neighbourhood_group_cleansed) %>%
   summarize(num_listings = n()) %>%
@@ -488,7 +549,6 @@ ggplot(region_data, aes(x = reorder(neighbourhood_group_cleansed, num_listings),
 # ---- END OF VISUALIZATION: map reviews in region by number -----
 
 # --- START OF Visualization: Correlation between number of airbnbs and sentiment ---
-# TODO REPORT Verteilung der Sentiments auf die Bezirke
 plot_correlation <- function(data, x_var, y_var) {
   cor_spearman <- cor(data[[x_var]], data[[y_var]], method = "spearman")
   cor_pearson <- cor(data[[x_var]], data[[y_var]], method = "pearson")

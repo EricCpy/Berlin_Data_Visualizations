@@ -10,6 +10,8 @@ library(gridExtra)
 library(rethinking)
 library(tidybayes)
 library(tidybayes.rethinking)
+library(rio)
+library(gridtext)
 
 source("code/helper_functions.R")
 source("code/data_etl.R")

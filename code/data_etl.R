@@ -322,6 +322,14 @@ df_airbnb2 <- df_airbnb %>% left_join(
   by = c("PLR_ID" = "LOR_ID")
 )
 
+bezirk_levels <- df_airbnb2 %>% 
+  transmute(bezirk = as.factor(neighbourhood_group_cleansed)) %>% 
+  pull() %>% levels()
+
+property_type_levels <- df_airbnb2 %>%
+  transmute(property_type = as.factor(room_type)) %>%
+  pull() %>% levels()
+
 # ---- VISUALS ----
 
 bezirk_colors <- c(

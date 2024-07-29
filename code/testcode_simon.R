@@ -1076,6 +1076,7 @@ base_model <- ulam(
 
 summary(base_model)
 # rm(base_model)
+base_model
 precis(base_model)
 post <- extract.samples(base_model , n=1e4) %>% as_tibble() %>% setNames(c("mu", "sigma"))
 post[[1]] %>% exp() %>% density() %>% plot()
@@ -1181,8 +1182,7 @@ flist <- alist(
 
 base_model_reputation <- ulam(
   flist, data=dat, 
-  cores = 4, chains = 4, iter = 2000,
-  file = "saved_objects/base_model_reputation"
+  cores = 4, chains = 4, iter = 2000
 )
 
 # precis(base_model_reputation, depth = 2)

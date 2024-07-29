@@ -1070,10 +1070,12 @@ flist <- alist(
 
 base_model <- ulam(
   flist, data=dat, 
-  cores = 4, chains = 4
+  cores = 4, chains = 4,
+  file = "saved_objects/base_model"
   )
-saveRDS(base_model, "saved_objects/base_model.rds")
 
+summary(base_model)
+# rm(base_model)
 precis(base_model)
 post <- extract.samples(base_model , n=1e4) %>% as_tibble() %>% setNames(c("mu", "sigma"))
 post[[1]] %>% exp() %>% density() %>% plot()
@@ -1111,9 +1113,9 @@ flist_studnet <- alist(
 
 base_model_student <- ulam(
   flist_studnet, data=dat, 
-  cores = 4, chains = 4
+  cores = 4, chains = 4,
+  file = "saved_objects/base_model_student"
 )
-saveRDS(base_model_student, "saved_objects/base_model_student.rds")
 
 summary(base_model_student)
 
@@ -1179,9 +1181,9 @@ flist <- alist(
 
 base_model_reputation <- ulam(
   flist, data=dat, 
-  cores = 4, chains = 4, iter = 2000
+  cores = 4, chains = 4, iter = 2000,
+  file = "saved_objects/base_model_reputation"
 )
-saveRDS(base_model_reputation, "saved_objects/base_model_reputation.rds")
 
 # precis(base_model_reputation, depth = 2)
 summary(base_model_reputation)
@@ -1260,9 +1262,9 @@ dat2 <- list(
 
 base_model_reputation_wohnlage <- ulam(
   flist, data=dat2, 
-  cores = 4, chains = 4, iter = 2000
+  cores = 4, chains = 4, iter = 2000,
+  file = "saved_objects/base_model_reputation_wohnlage"
 )
-saveRDS(base_model_reputation_wohnlage, "saved_objects/base_model_reputation_wohnlage.rds")
 
 summary(base_model_reputation_wohnlage)
 # summary(base_model_reputation_wohnlage_broken)
@@ -1279,9 +1281,9 @@ flist_student <- alist(
 
 base_model_reputation_wohnlage_student <- ulam(
   flist_student, data=dat2, 
-  cores = 4, chains = 4, iter = 2000
+  cores = 4, chains = 4, iter = 2000,
+  file = "saved_objects/base_model_reputation_wohnlage_student"
 )
-saveRDS(base_model_reputation_wohnlage_student, "saved_objects/base_model_reputation_wohnlage_student.rds")
 
 summary(base_model_reputation_wohnlage_student)
 
@@ -1729,9 +1731,9 @@ flist_only_flat_features <- alist(
 
 full_model_only_flat_features <- ulam(
   flist_only_flat_features, data=dat, 
-  cores = 4, chains = 4, iter = 2000
+  cores = 4, chains = 4, iter = 2000,
+  file = "saved_objects/full_model_only_flat_features"
 )
-saveRDS(full_model_only_flat_features, "saved_objects/full_model_only_flat_features.rds")
 
 summary(full_model_only_flat_features)
 
@@ -1752,9 +1754,9 @@ flist_no_amenities <- alist(
 
 full_model_no_amenities <- ulam(
   flist_no_amenities, data=dat, 
-  cores = 4, chains = 4, iter = 2000
+  cores = 4, chains = 4, iter = 2000,
+  file = "saved_objects/full_model_no_amenities"
 )
-saveRDS(full_model_no_amenities, "saved_objects/full_model_no_amenities.rds")
 
 summary(full_model_no_amenities)
 
@@ -1782,9 +1784,9 @@ flist_full <- alist(
 
 full_model <- ulam(
   flist_full, data=dat, 
-  cores = 4, chains = 4, iter = 2000
+  cores = 4, chains = 4, iter = 2000,
+  file = "saved_objects/full_model"
 )
-saveRDS(full_model, "saved_objects/full_model.rds")
 
 summary(full_model)
 
@@ -1812,9 +1814,9 @@ flist_full_student <- alist(
 
 full_model_student <- ulam(
   flist_full_student, data=dat, 
-  cores = 4, chains = 4, iter = 2000
+  cores = 4, chains = 4, iter = 2000,
+  file = "saved_objects/full_model_student"
 )
-saveRDS(full_model_student, "saved_objects/full_model_student.rds")
 
 summary(full_model_student)
 
@@ -2028,3 +2030,27 @@ geo_elect_units %>%
     data = coords_hauptbahnhof,
     mapping = aes(geometry = geometry)
   )
+
+#####
+
+base_model <- readRDS("saved_objects/base_model.rds")
+base_model_student <- readRDS("saved_objects/base_model_student.rds")
+
+base_model_reputation_wohnlage <- readRDS("saved_objects/base_model_reputation_wohnlage.rds")
+base_model_reputation_wohnlage_student <- readRDS("saved_objects/base_model_reputation_wohnlage_student.rds")
+
+bezirk_levels <- df_airbnb %>% 
+  transmute(bezirk = as.factor(neighbourhood_group_cleansed)) %>% 
+  pull() %>% levels()
+
+property_type_levels <- df_airbnb %>%
+  transmute(property_type = as.factor(room_type)) %>%
+  pull() %>% levels()
+
+(ggdag_adjustment_set(full_dag_adjusted, use_labels = "name", text = FALSE, shadow = T) + 
+    theme_dag() +
+    theme(
+      legend.position = "bottom",
+      strip.background = element_blank(),
+      strip.text.x = element_blank()
+    )) %>% plot_arrows_on_top()

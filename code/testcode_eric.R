@@ -1,6 +1,8 @@
 source("code/setup.R")
 
 # Sentiment Analysis
+test <- df_review_sentiments[df_review_sentiments$sentiment_for_name == "negative", c("name", "sentiment_for_name")]
+
 # TOP 10 languages
 df_review_languages <- read.csv("./data/airbnb/March_2024/review_sentiments_languages.csv")
 language_counts <- df_review_languages %>%
@@ -209,7 +211,6 @@ ggplot(df_percentage, aes(x = language, y = percentage, fill = sentiment)) +
 # ---- END OF VISUALIZATION: english vs german reviews, are german reviews/expectations lower/higher -----
 
 # ---- START OF VISUALIZATION: review sentiments over time ----
-# TODO REPORT Verteilung der Sentiments über Jahre und Monate
 library(RColorBrewer)
 color_palette <- brewer.pal(n = length(unique(df_review_sentiments$neighbourhood_group_cleansed)), name = "Set3")
 df_review_sentiments$date <- as.Date(df_review_sentiments$date, format = "%Y-%m-%d")
@@ -356,7 +357,6 @@ summary(model_both)
 # ---- END OF VISUALIZATION:  map price to review sentiment to rating in dataset ----
 
 # ---- START OF VISUALIZATION: map reviews in region by sentiment -----
-# TODO REPORT Verteilung der Sentiments auf die Bezirke
 region_sentiment_scores <- df_listings_cleaned_with_review_sentiment %>%
   group_by(neighbourhood_group_cleansed) %>%
   summarize(sentiment_region_score = mean(mean_sentiment_score_for_reviews))

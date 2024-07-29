@@ -31,7 +31,7 @@ Examining the factors influencing Airbnb characteristics, such as prices, is par
 **TODO describe listings dataset and reviews dataset**
 **TODO show in which regions are the most airbnbs**
 **TODO describe (briefly!) geo datasets (crime rate, toilets, opnv, gigabit, lor, uwb)**
-**TODO **
+**TODO show the price distribution (normal distribution)**
 
 ## Data Description
 
@@ -819,9 +819,9 @@ In this section, we analyze the sentiments of reviews and titles using existing 
 
 ![Top 10 languages by review count](images/languages.png)
 
-Due to the computational effort required to analyze reviews in all languages with our method (estimated 30 hours of computation time), we decided to analyze only the English and German texts. **das übersetzen hätte lange gebraucht, oder? Sonst erklärt sich kaum eine große Einsparung an sentiment analysis, da englisch und deutsch, ja bestimmt 50 % der reviews ausmachen**
+Due to the computational effort required to analyze reviews in all languages (estimated 30 hours of computation time), we decided to analyze only the English and German texts. We also considered translating all texts into English after detecting the language using translation libraries that access APIs like Google Translate, as well as translation models. However, this approach also posed computational challenges (estimated > 10 hours). Consequently, we chose to focus solely on the English and German texts.
 
-For sentiment analysis, we used the [VADER Sentiment Analysis tool](https://github.com/cjhutto/vaderSentiment) for English texts and the [German Sentiment tool](https://github.com/oliverguhr/german-sentiment) for German texts. We also considered translating all texts into English after detecting the language using translation libraries that access APIs like Google Translate, as well as translation models. However, this approach also posed computational challenges (estimated > 10 hours). Consequently, we chose to focus solely on the English and German texts.
+For sentiment analysis, we used the [VADER Sentiment Analysis tool](https://github.com/cjhutto/vaderSentiment) for English texts, which is fast but less robust. For German texts, we used the [German Sentiment tool](https://github.com/oliverguhr/german-sentiment), which is slower but more robust.
 
 In the following sections, we will first evaluate the sentiment analysis of the titles and then of the reviews. Sentiments can be positive, negative or neutral. Both analysis tools also provide a percentage score for the sentiments. For the analysis, we assumed that the sentiment analysis tools did not produce fundamentally incorrect results. Additionally, both tools operate on entire texts and include the context of a text into the sentiment.
 
@@ -848,13 +848,17 @@ ggplot(df_listings, aes(x = sentiment_for_name)) +
   theme_minimal()
 ```
 
-Here we can see that there are also some negative sentiments in the titles. This raises the question of what impact the sentiment of a title has on the price of an Airbnb. Does the sentiment of a title matter or could there be potential advantages to having a negative sentiment?
+Here we can see that there are also some negative sentiments in the titles. 
+Here are some examples of negatively classified titles:
+1. A bed in a 6-bed dormitory at Minimal Hostel No. 43
+2. 1 room in a shared apartment, Netflix, kitchen
 
-**Beispiele für negativ eingestufte titel?**
+It could be argued that these titles are more neutral than negative. However, we personally would associate a single bed in a shared room with something negative, as we immediately associate a lack of privacy and cramped space.  
+This raises the question of what impact the sentiment of a title has on the price of an Airbnb. Does the sentiment of a title matter or could there be potential advantages to having a negative sentiment if it conveys honesty?
 
 ### Impact of title sentiments on price
 
-Since we have some outliers in the price data, we will examine the price either within its 95% confidence interval or the log price. The 95% confidence interval is a range within which we expect the true price to lie 95% of the time, giving us a more reliable estimate by reducing the impact of extreme values. The following figures show the price of Airbnbs across different sentiment categories. **ich weiß nicht, ob ich das so sagen würde. Es ist ja hier noch gar keine Vorhersage, sondern konkrete daten oder? dann würde ich nicht confidence interval sagen. Und auf der logscala passen doch auch alle preise in die grafik oder?**
+Since we have some outliers in the price data, we will examine the price either within a 95% confidence interval or the log price. The 95% confidence interval is a range within which we expect the true price to lie 95% of the time, giving us a more reliable estimate by reducing the impact of extreme values. To use the 95% confidence interval, we assume that the data is independently and identically distributed (iid) and approximately normally distributed. The following figures show the price of Airbnbs across different sentiment categories.
 
 ```{r violinPlotLogTitles, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Prices (log) of title sentiments", fig.align='center'}
 ggplot(df_listings_cleaned, aes(x = sentiment_for_name, y = log_price, fill = sentiment_for_name)) +
@@ -864,7 +868,7 @@ ggplot(df_listings_cleaned, aes(x = sentiment_for_name, y = log_price, fill = se
   theme_minimal()
 ```
 
-When comparing sentiments with the log price, we can see that the prices of Airbnbs with negative sentiments are almost identical to those with neutral sentiments. Most reviews for both categories fall within a price between **4.3** and **4.9**. For positive sentiments, we observe a slightly different pattern. The number of high priced Airbnbs decreases earlier than in the negative and neutral categories, although the decline is less steep. This indicates that there are more Airbnbs with positive titles at higher prices. **anhand der boxplots würde ich ja auch sagen, dass bei den höherpreisigen wohnungen mehr liegen für good sentiment**
+When comparing sentiments with the log price, we can see that the prices of Airbnbs with negative sentiments are almost identical to those with neutral sentiments. Most reviews for both categories fall within a price between **4.3** and **4.9**. For positive sentiments, we observe a slightly different pattern. The number of high priced Airbnbs decreases earlier than in the negative and neutral categories, although the decline is less steep. This and the boxplot indicate that there are more Airbnbs with positive titles at higher prices.
 
 ```{r violinPlotCITitles, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Prices (95% CI) of title sentiments", fig.align='center'}
 mean_price <- mean(df_listings_cleaned$price)
@@ -878,14 +882,21 @@ ci_high <- mean_price + z99 * sd_price / sqrt(nrow(df_listings_cleaned))
 df_filtered <- df_listings_cleaned %>%
   filter(price >= ci_low & price <= ci_high)
 
-ggplot(df_filtered, aes(x = sentiment_for_name, y = price, fill = sentiment_for_name)) +
+plot_violin <- ggplot(df_filtered, aes(x = sentiment_for_name, y = price, fill = sentiment_for_name)) +
   geom_violin(trim = FALSE) +
   geom_boxplot(width = 0.1, fill = "white") +
   labs(title = "Distribution of prices by sentiment", x = "Sentiment", y = "Price", fill="Sentiment") +
   theme_minimal()
+
+plot_density <- ggplot(df_filtered, aes(x = price, fill = sentiment_for_name)) +
+  geom_density(alpha = 0.5) +
+  labs(title = "Density of Prices by Sentiment", x = "Price", y = "Density", fill = "Sentiment") +
+  theme_minimal()
+
+grid.arrange(plot_violin, plot_density, ncol=2)
 ```
 
-If we take a look at the actual prices within the 95% confidence interval. Here, we can see a difference between negative and neutral sentiments. Prices for Airbnbs with negative sentiments are more evenly distributed than those with positive or neutral sentiments. Additionally, Airbnbs with neutral sentiments almost all have prices around 125€. For positive sentiments, we can see that there are more Airbnbs with higher prices compared to those with neutral or negative sentiments. **hier könnte es sinn machen, statt violinplots mit density approx mal auf histogramm artige darstellungen zu schauen**
+If we take a look at the actual prices within the 95% confidence interval. Here, we can see a difference between negative and neutral sentiments. Prices for Airbnbs with negative sentiments are more evenly distributed than those with positive or neutral sentiments. Additionally, Airbnbs with neutral sentiments almost all have prices around 125€. For positive sentiments, we can see that there are more Airbnbs with higher prices compared to those with neutral or negative sentiments.
 
 In conclusion, there are small differences in price between the title sentiments. For Airbnb hosts it might be advantageous to use a positive sentiment in their titles to slightly increase the price. However, this would only be a minor factor. More important factors are likely to revolve around the preview images of an Airbnb.
 
@@ -906,10 +917,7 @@ We hypothesize that many reviews cover both positive and negative aspects, leadi
 
 ### Impact of review sentiments on price
 
-As with the titles, we analyzed the log price and the 95% confidence interval for review sentiments.
-[INSERT LOG PRICE IMAGE]
-
-**zwischen title und review sentiments unterschieden in fig captions und text? irgendwie kalr machen, auf wie vielen datenpunkten die violinen jeweils beruhen, da dies doch recht untershciedlich ist?**
+As with the titles, we analyzed the log price and the 95% confidence interval for review sentiments. However, instead of examining just **8,384** titles, we now consider **367,165** reviews. While each Airbnb listing can have only one title, it can have multiple reviews.
 
 ```{r violinPlotsReviewPrices, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Prices of review sentiments", fig.align='center'}
 mean_price <- mean(df_listings_cleaned$price)
@@ -938,13 +946,86 @@ ci_price <- ggplot(df_filtered, aes(x = sentiment, y = price, fill = sentiment))
 grid.arrange(log_price, ci_price, ncol=2)
 ```
 
-In the log price distribution, we observe a similar pattern to that seen with the titles. However, the price for Airbnbs with negative sentiments tends to be in a higher range compared to those with neutral or positive sentiments. **kann selections effekt sein. schlecht restaurant überleben, wo es viele turois gibt trotzdem. also können auch schlechte airbnbs teuer in prenzlauerberg liegen und es kommen trotzdem gäste - zwar nur ein mal, aber es werdn schon neue kommen xD gute restaurants überleben hingegen auch in der wallachei**  
-The confidence interval price image provides a more precise view. Similar to the titles, the prices for Airbnbs with positive and negative review sentiments are almost identical. However, we can clearly see that negative sentiments are associated with a significant proportion of higher priced listings. This might be due to the fact that some higher priced Airbnbs do not necessarily offer better services compared to more affordable options that provide similar amenities. Customers may expect higher quality from more expensive listings and feel disappointed if those expectations are not met.
+In the log price distribution, we observe a similar pattern to that seen with the titles. However, the price for Airbnbs with negative sentiments tends to be in a higher range compared to those with neutral or positive sentiments.   
+The confidence interval price image provides a more precise view. Similar to the titles, the prices for Airbnbs with positive and negative review sentiments are almost identical. However, we can clearly see that negative sentiments are associated with a significant proportion of higher priced listings. This might be due to the fact that some higher priced Airbnbs do not necessarily offer better services compared to more affordable options that provide similar amenities. Customers may expect higher quality from more expensive listings and feel disappointed if those expectations are not met. Another point to consider is the selection effect. High demand for Airbnbs in Berlin can lead to situations where properties with high prices and less favorable reviews are still fully booked.
 
-### Verteilung der Sentiments auf die Bezirke TODO
-This section aims to explore how sentiments are distributed across different neighborhoods. This analysis may provide insights into whether certain neighborhoods have particularly appealing apartments or Airbnbs that reviewers find especially attractive. We will examine both the sentiments and the ratings given by reviewers.
+### Sentiment and rating distribution across neighborhoods
+This section aims to explore how sentiments and ratings are distributed across different neighborhoods. This analysis may provide insights into whether certain neighborhoods have particularly appealing apartments or Airbnbs that reviewers find especially attractive. We will examine both the sentiments and the ratings given by reviewers.
 
-#### Sentiments TODO
+#### Sentiments
+To analyze how sentiments of reviews are distributed across different districts, we first calculate the mean sentiment for each Airbnb listing. The sentiment of a review is determined using a sentiment score, which is the difference between positive sentiment and negative sentiment. This score ranges from -1 to 1, where -1 indicates very negative sentiment, 1 indicates very positive sentiment, and 0 represents a neutral sentiment or a balance between positive and negative aspects, making the text neutral overall. After that we group the Airbnbs by district and compute the district's mean sentiment.
+
+```{r neighborhoodSentiments, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Review sentiments of neighborhoods", fig.align='center'}
+region_sentiment_scores <- df_listings_cleaned_with_review_sentiment %>%
+  group_by(neighbourhood_group_cleansed) %>%
+  summarize(sentiment_region_score = mean(mean_sentiment_score_for_reviews))
+
+min_score <- min(region_sentiment_scores$sentiment_region_score)
+max_score <- max(region_sentiment_scores$sentiment_region_score)
+
+score_to_color <- function(score, min_score, max_score) {
+  color_palette <- colorRampPalette(c("slateblue3", "lightblue", "limegreen"))(100)
+  color_palette[as.numeric(cut(score, breaks = seq(min_score, max_score, length.out = 101), include.lowest = TRUE))]
+}
+
+region_sentiment_scores <- region_sentiment_scores %>%
+  mutate(color = score_to_color(sentiment_region_score, min_score, max_score))
+
+bezirke_name_id <- tribble(
+  ~BEZ_NAME, ~BEZ_ID,
+  "Mitte", "01",
+  "Friedrichshain-Kreuzberg", "02",
+  "Pankow", "03",
+  "Charlottenburg-Wilmersdorf", "04",
+  "Spandau", "05",
+  "Steglitz-Zehlendorf", "06",
+  "Tempelhof-Schöneberg", "07",
+  "Neukölln", "08",
+  "Treptow-Köpenick", "09",
+  "Marzahn-Hellersdorf", "10",
+  "Lichtenberg", "11",
+  "Reinickendorf", "12",
+)
+
+lor <- sf::st_read(dsn = "data/lor/Planung") %>% 
+  st_make_valid(tol = 0.00001) %>% st_transform(4326) %>% 
+  mutate(
+    BEZ_ID = str_sub(PLR_ID, 1, 2),
+    PGR_ID = str_sub(PLR_ID, 1, 4),
+    BZR_ID = str_sub(PLR_ID, 1, 6)
+  ) %>% 
+  left_join(bezirke_name_id, by = c("BEZ_ID" = "BEZ_ID"))
+
+lor <- left_join(lor, region_sentiment_scores, by = c("BEZ_NAME" = "neighbourhood_group_cleansed"))
+
+lor_combined <- lor %>%
+  group_by(BEZ_ID, BEZ_NAME) %>%
+  summarize(geometry = st_union(geometry), color = unique(color), .groups = 'drop') %>%
+  mutate(label_combined = paste(BEZ_ID, BEZ_NAME, sep = ": "))
+
+map_plot <- ggplot() +
+  geom_sf(data = lor_combined, aes(geometry = geometry, fill = label_combined)) +
+  geom_sf_text(data = lor_combined, aes(geometry = geometry, label = BEZ_ID), size = 3, color = "black") +
+  scale_fill_manual(values = unique(lor_combined$color), name = "Bezirke (ID: Name)") +
+  theme_void() +
+  labs(title = "Sentiment Map of Berlin") +
+  theme(legend.position = "right", plot.title = element_text(hjust = 0.5))
+
+bar_plot <- ggplot(region_sentiment_scores, aes(x = reorder(neighbourhood_group_cleansed, sentiment_region_score), 
+                                    y = sentiment_region_score, fill = color)) +
+  geom_bar(stat = "identity") +
+  scale_fill_identity() + 
+  coord_flip() +
+  labs(title = "Sentiment Scores by Neighborhood",
+       x = "Neighborhood",
+       y = "Sentiment Score") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+grid.arrange(map_plot, bar_plot, ncol=2)
+```
+
+We can observe that the eastern and western outer districts of Berlin have more positive sentiments in their reviews compared to the central districts. We saw in our overview chapter that the central districts have a higher number of Airbnbs and a higher price. Almost every district with a large number of Airbnbs and high prices tends to have a negative sentiment, with the exception of Neukölln. Neukölln is unique in that it has a negative sentiment despite having fewer Airbnb listings and lower prices.
 
 #### Rating vs Sentiments TODO
 
@@ -952,8 +1033,93 @@ This section aims to explore how sentiments are distributed across different nei
 
 #### Correlation between number of reviews and sentiment TODO
 
-### Verteilung der Sentiments über Jahre und Monate TODO
-Nimmt die Jahreszeit einen Einfluss auf das Sentiment der Reviews?
+### Distribution of sentiments over years and months
+
+The distribution of sentiments over the years can provide us with insights into how the general situation of Airbnbs has evolved. By examining the changes in sentiments over time for individual districts, we can also determine whether some areas are thriving in terms of Airbnb activity while others are declining. Additionally, it is intriguing to see how the COVID-19 years have influenced these sentiments. The following chart displays the overall average sentiment across all districts on the left, and the sentiment trends for each individual district on the right.
+
+```{r yearSentiments, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Review sentiments of neighborhoods", fig.align='center'}
+library(RColorBrewer)
+color_palette <- brewer.pal(n = length(unique(df_review_sentiments$neighbourhood_group_cleansed)), name = "Set3")
+df_review_sentiments$date <- as.Date(df_review_sentiments$date, format = "%Y-%m-%d")
+df_review_sentiments$year <- as.numeric(format(df_review_sentiments$date, "%Y"))
+
+yearly_sentiment_by_neighbourhood <- df_review_sentiments %>%
+  group_by(year, neighbourhood_group_cleansed) %>%
+  summarize(mean_sentiment = mean(sentiment_score), .groups = 'drop')
+
+overall_yearly_sentiment <- df_review_sentiments %>%
+  group_by(year) %>%
+  summarize(mean_sentiment = mean(sentiment_score), .groups = 'drop')
+
+general_plot <- ggplot(overall_yearly_sentiment, aes(x = year, y = mean_sentiment)) +
+  geom_line(group = 1) +
+  geom_point() +
+  scale_x_continuous(breaks = seq(min(overall_yearly_sentiment$year), 
+                                  max(overall_yearly_sentiment$year), 
+                                  by = 1)) + 
+  labs(title = "Mean Sentiment Score Over the Years",
+       x = "Year", y = "Mean Sentiment Score") +
+  theme_minimal()
+
+neighborhood_plot <- ggplot() +
+  geom_line(data = yearly_sentiment_by_neighbourhood, aes(x = year, y = mean_sentiment, color = neighbourhood_group_cleansed, group = neighbourhood_group_cleansed), size = 1, alpha = 2) +
+  geom_point(data = yearly_sentiment_by_neighbourhood, aes(x = year, y = mean_sentiment, color = neighbourhood_group_cleansed, group = neighbourhood_group_cleansed), size = 1.75, alpha = 2) +
+  geom_line(data = overall_yearly_sentiment, aes(x = year, y = mean_sentiment), color = "black", size = 1.2, alpha = 0.5) +
+  geom_point(data = overall_yearly_sentiment, aes(x = year, y = mean_sentiment), color = "black", size = 2, alpha = 0.5) +
+  scale_x_continuous(breaks = seq(min(overall_yearly_sentiment$year), 
+                                  max(overall_yearly_sentiment$year), 
+                                  by = 1)) + 
+  labs(title = "Mean Sentiment Score Over the Years by District",
+       x = "Year", y = "Mean Sentiment Score") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+  scale_color_manual(values = color_palette, name = "District")
+
+grid.arrange(general_plot, neighborhood_plot, ncol=2)
+```
+
+We can observe that the review sentiments were very positive when the platform first launched. This could be attributed to specific promotional efforts by Airbnb aimed at increasing its popularity in Berlin. Over the following year, the sentiment score declined significantly but remained positive. Subsequently, the sentiment score was improved linearly. An exception occurred during the COVID-19 years, when the sentiment score reached an all time high. This increase may be attributed to the temporary absence of international tourists in Germany, which could have led to differences in review sentiments. We will explore this in more detail in the next chapter.  
+When examining individual districts, two notable patterns emerge. First, popular districts like Spandau, Marzahn-Hellersdorf and Reinickendorf all experienced a sharp decline in sentiment in 2014. Second, it appears that Marzahn-Hellersdorf might develop a better average sentiment than Spandau in the coming years.
+
+The monthly data can offer intriguing insights into whether the timing of a visit to Berlin affects user experiences. It might also reveal if there are particular times of the year when visiting Berlin is especially rewarding, based on sentiment trends. The following chart is similar to the previous one, but it uses months instead of years.
+
+```{r monthSentiments, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Review sentiments of neighborhoods", fig.align='center'}
+df_review_sentiments$month <- as.numeric(format(df_review_sentiments$date, "%m"))
+
+monthly_sentiment_by_neighbourhood <- df_review_sentiments %>%
+  group_by(month, neighbourhood_group_cleansed) %>%
+  summarize(mean_sentiment = mean(sentiment_score), .groups = 'drop')
+
+overall_monthly_sentiment <- df_review_sentiments %>%
+  group_by(month) %>%
+  summarize(mean_sentiment = mean(sentiment_score), .groups = 'drop')
+
+month_labels <- setNames(month.abb, 1:12)
+
+ggplot(overall_monthly_sentiment, aes(x = month, y = mean_sentiment)) +
+  geom_line(group = 1) +
+  geom_point() +
+  labs(title = "Mean Sentiment Score Over the Months",
+       x = "Month", y = "Mean Sentiment Score") +
+  scale_x_continuous(breaks = 1:12, labels = month_labels) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+ggplot() +
+  geom_line(data = monthly_sentiment_by_neighbourhood, aes(x = month, y = mean_sentiment, color = neighbourhood_group_cleansed, group = neighbourhood_group_cleansed), size = 1, alpha = 2) +
+  geom_point(data = monthly_sentiment_by_neighbourhood, aes(x = month, y = mean_sentiment, color = neighbourhood_group_cleansed, group = neighbourhood_group_cleansed), size = 1.75, alpha = 2) +
+  geom_line(data = overall_monthly_sentiment, aes(x = month, y = mean_sentiment), color = "black", size = 1.2, alpha = 0.5) +
+  geom_point(data = overall_monthly_sentiment, aes(x = month, y = mean_sentiment), color = "black", size = 2, alpha = 0.5) +
+  labs(title = "Mean Sentiment Score Over the Months by District",
+       x = "Month", y = "Mean Sentiment Score") +
+  scale_x_continuous(breaks = 1:12, labels = month_labels) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+  scale_color_manual(values = color_palette, name = "District")
+```
+
+Overall, it appears that spring is a season with notably high sentiment. In contrast, summer and winter seem to be less favored. This could be because additional amenities, such as air conditioning or heating, are required during these seasons but not necessarily during spring.  
+An interesting pattern emerges when examining sentiment distribution across districts. Spandau behaves differently from all other districts. While sentiment in Spandau is relatively low during spring, it significantly increases in the summer.
 
 ### How language affects sentiments
 In this section, we aim to investigate whether English and German users behave differently in their reviews and Airbnb selection. Specifically, we want to determine if German or English users differ in their ratings and if there are preferred neighborhoods among either group. We don't have individual user ratings in our data, only the average rating for each Airbnb. Therefore, we use the sentiment of the reviews to analyze and understand the rating trends.
@@ -1069,12 +1235,14 @@ grid.arrange(plot_ger, plot_eng, ncol=2)
 This reveals that neighborhoods surrounding Berlin-Mitte are favored by both English and German visitors, with Kreuzberg and Pankow also ranking high in popularity. Notably, German visitors are more often in neighborhoods adjacent to Berlin-Mitte than the English visitors, such as Charlottenburg-Wilmersdorf and Tempelhof-Schöneberg. Airbnbs in outer districts like Marzahn-Hellersdorf and Spandau are less frequently visited by both English and German visitors. Overall, English reviewers show a strong preference for staying in or near Berlin-Mitte, while German reviewers exhibit a broader range of preferences, including more frequent stays in outer districts.
 
 #### Verteilung der Sprachen auf die Monate TODO
+
 Another interesting aspect to consider is whether German reviewers might choose different times to visit Berlin compared to English reviewers. We can determine this by analyzing the time of the reviews. For the following analysis our assumption is that visitors are likely to leave a review shortly after their stay rather than several months later.
 
 [INSERT IMAGE]
 [TODO: ANALYSIS]
 
-#### Comparing between the English and German review sentiments
+#### Comparing the English and German review sentiments
+
 This chapter addresses whether English and German reviewers differ in the sentiment of their reviews. We analyzed the distribution of sentiment percentages for reviews in each language.
 
 ```{r comparisonEnglishVsGermanSentiments, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Comparison between English and German sentiments", fig.align='center'}

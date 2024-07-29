@@ -1027,11 +1027,176 @@ grid.arrange(map_plot, bar_plot, ncol=2)
 
 We can observe that the eastern and western outer districts of Berlin have more positive sentiments in their reviews compared to the central districts. We saw in our overview chapter that the central districts have a higher number of Airbnbs and a higher price. Almost every district with a large number of Airbnbs and high prices tends to have a negative sentiment, with the exception of Neukölln. Neukölln is unique in that it has a negative sentiment despite having fewer Airbnb listings and lower prices.
 
-#### Rating vs Sentiments TODO
+#### Sentiment compared to number of reviews
+The results from the previous chapter raised the question of whether our assumption holds true, that sentiment might be affected by the number of Airbnbs in a district. To explore this, we have plotted the number of Airbnbs per district again, as we did in the previous chapter with the sentiments.
 
-#### Sentiment compared to number of reviews TODO
+```{r neighborhoodAirbnbCount, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Number of Airbnbs of neighborhoods", fig.align='center'}
+listings_per_bezirk <- df_listings_cleaned_with_review_sentiment %>%
+  group_by(neighbourhood_group_cleansed) %>%
+  summarize(num_listings = n()) %>%
+  ungroup()
 
-#### Correlation between number of reviews and sentiment TODO
+total_listings <- sum(listings_per_bezirk$num_listings)
+listings_per_bezirk <- listings_per_bezirk %>%
+  mutate(percentage_listings = (num_listings / total_listings) * 100)
+
+region_data <- region_sentiment_scores %>%
+  left_join(listings_per_bezirk, by = "neighbourhood_group_cleansed")
+
+min_percentage <- min(region_data$percentage_listings)
+max_percentage <- max(region_data$percentage_listings)
+
+score_to_color <- function(score, min_score, max_score) {
+  color_palette <- colorRampPalette(c("slateblue3", "lightblue", "limegreen"))(100)
+  color_palette[as.numeric(cut(score, breaks = seq(min_score, max_score, length.out = 101), include.lowest = TRUE))]
+}
+
+region_data <- region_data %>%
+  mutate(color = score_to_color(percentage_listings, min_percentage, max_percentage))
+
+lor <- sf::st_read(dsn = "data/lor/Planung") %>%
+  st_make_valid(tol = 0.00001) %>%
+  st_transform(4326) %>%
+  mutate(
+    BEZ_ID = str_sub(PLR_ID, 1, 2),
+    PGR_ID = str_sub(PLR_ID, 1, 4),
+    BZR_ID = str_sub(PLR_ID, 1, 6)
+  ) %>%
+  left_join(bezirke_name_id, by = c("BEZ_ID" = "BEZ_ID")) %>%
+  left_join(region_data, by = c("BEZ_NAME" = "neighbourhood_group_cleansed"))
+
+lor_combined <- lor %>%
+  group_by(BEZ_ID, BEZ_NAME) %>%
+  summarize(geometry = st_union(geometry), color = unique(color), .groups = 'drop') %>%
+  mutate(label_combined = paste(BEZ_ID, BEZ_NAME, sep = ": "))
+
+map_plot <- ggplot() +
+  geom_sf(data = lor_combined, aes(geometry = geometry, fill = label_combined)) +
+  geom_sf_text(data = lor_combined, aes(geometry = geometry, label = BEZ_ID), size = 3, color = "black") +
+  scale_fill_manual(values = lor_combined$color, name = "Bezirke (ID: Name)") +
+  theme_void() +
+  labs(title = "Percentage of Airbnbs by Bezirk in Berlin") +
+  theme(legend.position = "right", plot.title = element_text(hjust = 0.5))
+
+bar_plot <- ggplot(region_data, aes(x = reorder(neighbourhood_group_cleansed, num_listings), 
+                        y = num_listings, fill = color)) +
+  geom_bar(stat = "identity") +
+  scale_fill_identity() + 
+  coord_flip() +
+  labs(title = "Number of Airbnbs by Neighborhood",
+       x = "Neighborhood",
+       y = "Number of Airbnbs") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+grid.arrange(map_plot, bar_plot, ncol=2)
+```
+
+When comparing this chart with the sentiment one, it is immediately apparent that there is a strong correlation between the number of Airbnbs and the sentiment. The following plot illustrates this relationship more clearly.
+
+```{r correlationCountSentiment, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Correlation Sentiment and Number of Airbnbs of neighborhoods", fig.align='center'}
+plot_correlation <- function(data, x_var, y_var) {
+  cor_spearman <- cor(data[[x_var]], data[[y_var]], method = "spearman")
+  cor_pearson <- cor(data[[x_var]], data[[y_var]], method = "pearson")
+  
+  ggplot(data, aes_string(x = x_var, y = y_var)) +
+    geom_point(color = "blue") +
+    geom_smooth(method = "lm", color = "red", se = FALSE) +
+    labs(
+      title = paste0("Correlation between ", x_var, " and ", y_var, "\nPearson: ", round(cor_pearson, 2), " Spearman: ", round(cor_spearman, 2)),
+      x = paste0(x_var, "-value"),
+      y = paste0(y_var, "-value")
+    ) +
+    theme_minimal()
+}
+
+plot_correlation(region_data, "num_listings", "sentiment_region_score")
+```
+
+We observe a strong linear correlation between the number of Airbnbs and sentiment. We attribute this to the selection effect, in popular neighborhoods, the demand for properties often exceeds the availability of desirable options. As a result, people may end up booking less desirable accommodations out of necessity, which leads to negative reviews and lower sentiment.
+
+#### Rating vs sentiment as price indicator
+
+We also explored whether the average sentiment of an Airbnb affects its price differently than the rating. If there is no significant difference, using either sentiment or rating to assess price would yield the same results. In such cases, the rating might be preferred for simplicity, as it doesn't require additional processing. To examine this, we use the following two scatter plots, the left plot shows the correlation between price and rating, while the right plot displays the correlation between price and sentiment.
+
+```{r correlationPriceSentiment, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Correlation sentiment and price and rating and price", fig.align='center'}
+rating_plot <- ggplot(df_listings_cleaned_with_review_sentiment, aes(x = review_scores_rating, y = price)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(
+    title = "Price vs rating",
+    x = "Rating",
+    y = "Price"
+  ) +
+  theme_minimal()
+
+sentiment_plot <- ggplot(df_listings_cleaned_with_review_sentiment, aes(x = mean_sentiment_score_for_reviews, y = price)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(
+    title = " Price vs review sentiment score",
+    x = "Review Sentiment Score",
+    y = "Price"
+  ) +
+  theme_minimal()
+
+grid.arrange(rating_plot, sentiment_plot, ncol=2)
+```
+
+We can see that sentiments and ratings have different impacts on price. When the rating increases, the price also tends to rise, while the price tends to decline when sentiment decreases. Additionally, we tested whether a regression model would be more strongly influenced by price or sentiment, and whether it would still be beneficial to include both variables in the model.
+
+```{r regressionPriceSentimentRating, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Correlation sentiment and price and rating and price", fig.align='center'}
+model_both <- lm(price ~ review_scores_rating + mean_sentiment_score_for_reviews, data = df_listings_cleaned_with_review_sentiment)
+summary(model_both)
+```
+
+We can observe that both the rating and the sentiment score have a significant impact on the model. However, the rating is considerably more significant than the sentiment score.
+
+Furthermore, we examined how the influence of sentiment and rating varied across different districts. To do this, we first repeated the previous general visualization for all districts.
+
+```{r correlationPriceSentiment, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Correlation sentiment and price and rating and price", fig.align='center'}
+ggplot(df_listings_cleaned_with_review_sentiment, aes(x = review_scores_rating, y = price)) +
+  geom_point(aes(color = neighbourhood_group_cleansed), alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE, aes(color = neighbourhood_group_cleansed)) +
+  facet_wrap(~ neighbourhood_group_cleansed) + 
+  labs(
+    title = "Price vs rating score by neighborhood",
+    x = "Rating",
+    y = "Price"
+  ) +
+  theme_minimal() +
+  theme(
+    strip.text = element_text(size = 12),
+    legend.position = "bottom"
+  )
+
+# correlation between price and review sentiment
+ggplot(df_listings_cleaned_with_review_sentiment, aes(x =mean_sentiment_score_for_reviews , y = price)) +
+  geom_point(aes(color = neighbourhood_group_cleansed), alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE, aes(color = neighbourhood_group_cleansed)) +
+  facet_wrap(~ neighbourhood_group_cleansed) + 
+  labs(
+    title = "Price vs review sentiment score by neighborhood",
+    x = "Review Sentiment Score",
+    y = "Price"
+  ) +
+  theme_minimal() +
+  theme(
+    strip.text = element_text(size = 12),
+    legend.position = "bottom" 
+  )
+
+grid.arrange(rating_plot, sentiment_plot, ncol=2)
+```
+
+We can observe that sentiment fluctuates significantly more between districts compared to the rating, which shows a relatively consistent trend across all areas. Using two ANOVA tests, we assessed the significance of the differences in sentiment and rating across the districts.
+
+```{r regressionPriceSentimentRating, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Correlation sentiment and price and rating and price", fig.align='center'}
+summary(aov(review_scores_rating ~ neighbourhood_group_cleansed, data=df_listings_cleaned_with_review_sentiment))
+summary(aov(mean_sentiment_score_for_reviews ~ neighbourhood_group_cleansed, data=df_listings_cleaned_with_review_sentiment))
+```
+
+The tests confirm what we had already observed in our visualization, the sentiment is significantly more influenced by the district than the rating.
 
 ### Distribution of sentiments over years and months
 
@@ -1078,7 +1243,7 @@ neighborhood_plot <- ggplot() +
 grid.arrange(general_plot, neighborhood_plot, ncol=2)
 ```
 
-We can observe that the review sentiments were very positive when the platform first launched. This could be attributed to specific promotional efforts by Airbnb aimed at increasing its popularity in Berlin. Over the following year, the sentiment score declined significantly but remained positive. Subsequently, the sentiment score was improved linearly. An exception occurred during the COVID-19 years, when the sentiment score reached an all time high. This increase may be attributed to the temporary absence of international tourists in Germany, which could have led to differences in review sentiments. We will explore this in more detail in the next chapter.  
+We can observe that the review sentiments were very positive when the platform first launched. This could be attributed to specific promotional efforts by Airbnb aimed at increasing its popularity in Berlin. Over the following year, the sentiment score declined significantly but remained positive. Subsequently, the sentiment score was improved linearly. An exception occurred during the COVID-19 years, when the sentiment score reached an all time high. This increase is due to the temporary absence of international tourists in Germany. In the next chapter we will observe that German Reviews have higher Sentiments.
 When examining individual districts, two notable patterns emerge. First, popular districts like Spandau, Marzahn-Hellersdorf and Reinickendorf all experienced a sharp decline in sentiment in 2014. Second, it appears that Marzahn-Hellersdorf might develop a better average sentiment than Spandau in the coming years.
 
 The monthly data can offer intriguing insights into whether the timing of a visit to Berlin affects user experiences. It might also reveal if there are particular times of the year when visiting Berlin is especially rewarding, based on sentiment trends. The following chart is similar to the previous one, but it uses months instead of years.
@@ -1233,13 +1398,6 @@ grid.arrange(plot_ger, plot_eng, ncol=2)
 ```
 
 This reveals that neighborhoods surrounding Berlin-Mitte are favored by both English and German visitors, with Kreuzberg and Pankow also ranking high in popularity. Notably, German visitors are more often in neighborhoods adjacent to Berlin-Mitte than the English visitors, such as Charlottenburg-Wilmersdorf and Tempelhof-Schöneberg. Airbnbs in outer districts like Marzahn-Hellersdorf and Spandau are less frequently visited by both English and German visitors. Overall, English reviewers show a strong preference for staying in or near Berlin-Mitte, while German reviewers exhibit a broader range of preferences, including more frequent stays in outer districts.
-
-#### Verteilung der Sprachen auf die Monate TODO
-
-Another interesting aspect to consider is whether German reviewers might choose different times to visit Berlin compared to English reviewers. We can determine this by analyzing the time of the reviews. For the following analysis our assumption is that visitors are likely to leave a review shortly after their stay rather than several months later.
-
-[INSERT IMAGE]
-[TODO: ANALYSIS]
 
 #### Comparing the English and German review sentiments
 

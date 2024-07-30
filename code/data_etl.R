@@ -463,3 +463,74 @@ wohnlage -> crime_rate
 wohnlage -> price
 wohnlage -> reputation
 }')
+
+### Basic plots data
+
+airbnb_count <- df_listings_cleaned %>% 
+  count(neighbourhood_group_cleansed, sort = TRUE) %>% 
+  rename(BEZ_NAME = neighbourhood_group_cleansed)
+
+total_airbnbs <- sum(airbnb_count$n)
+
+airbnb_count <- airbnb_count %>%
+  mutate(proportion = n / total_airbnbs)
+
+raw <- sf::st_read(dsn = "data/lor/Planung/lor_plr.shp") %>% 
+  st_make_valid() %>% 
+  st_transform(4326) %>% 
+  mutate(
+    BEZ_ID = str_sub(PLR_ID, 1, 2),
+    PGR_ID = str_sub(PLR_ID, 1, 4),
+    BZR_ID = str_sub(PLR_ID, 1, 6)
+  )
+
+bezirke_name_id <- tribble(
+  ~BEZ_NAME, ~BEZ_ID,
+  "Mitte", "01",
+  "Friedrichshain-Kreuzberg", "02",
+  "Pankow", "03",
+  "Charlottenburg-Wilmersdorf", "04",
+  "Spandau", "05",
+  "Steglitz-Zehlendorf", "06",
+  "Tempelhof-Schöneberg", "07",
+  "Neukölln", "08",
+  "Treptow-Köpenick", "09",
+  "Marzahn-Hellersdorf", "10",
+  "Lichtenberg", "11",
+  "Reinickendorf", "12"
+)
+
+raw <- raw %>% 
+  left_join(bezirke_name_id, by = c("BEZ_ID" = "BEZ_ID")) %>% 
+  left_join(airbnb_count, by = c("BEZ_NAME" = "BEZ_NAME"))
+
+bezirk_colors <- c(
+  "Mitte" = "#FF6347",
+  "Friedrichshain-Kreuzberg" = "#FFD700",
+  "Pankow" = "#ADFF2F",
+  "Charlottenburg-Wilmersdorf" = "#1E90FF",
+  "Spandau" = "#8A2BE2",
+  "Steglitz-Zehlendorf" = "#FF69B4",
+  "Tempelhof-Schöneberg" = "#7FFF00",
+  "Neukölln" = "#00CED1",
+  "Treptow-Köpenick" = "#D2691E",
+  "Marzahn-Hellersdorf" = "#FF4500",
+  "Lichtenberg" = "#32CD32",
+  "Reinickendorf" = "#0000FF"
+)
+
+#map with numbers
+centroids <- raw %>% 
+  group_by(BEZ_NAME) %>% 
+  summarise(geometry = st_centroid(st_union(geometry)), n = first(n))
+
+#number of airbnbs on a scale (try log scale)
+borough_borders <- raw %>%
+  group_by(BEZ_ID) %>%
+  summarise(geometry = st_union(geometry))
+
+#barplot of mean availability by bezirk
+availability_rate <- df_listings_cleaned %>%
+  group_by(neighbourhood_group_cleansed) %>%
+  summarise(avg_availability = mean(availability_365))
+

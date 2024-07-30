@@ -43,8 +43,13 @@ Then datasets providing collections of reviews written in different languages fo
 Airbnb listings in Berlin. It includes review, reviewer and listing IDs, as well
 as a date and the textual content of the comment of the review.
 
-```{r}
-
+```{r templateFigure, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
+ggplot(raw) + 
+  geom_sf(aes(fill = BEZ_NAME)) +
+  scale_fill_manual(values = bezirk_colors, name = "BEZ_NAME") +
+  theme_void() +
+  labs(title = "Neighborhoods in Berlin",
+       fill = "Bezirk")
 ```
 
 By plotting maps of the number or the proportion of airbnbs in the different

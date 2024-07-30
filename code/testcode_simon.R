@@ -2351,7 +2351,7 @@ full_model_post %>%
   group_by(bezirk) %>% summarise(median_price = exp(median(price))) %>% 
   arrange(median_price)
 
-#### final plot 
+#### final plot ####
 
 df_temp <- full_model_post %>%
   pivot_wider(names_from = "wohnlage", values_from = "delta", names_prefix = "wol_") %>% 
@@ -2508,3 +2508,7 @@ ggpubr::ggarrange(
   common.legend = TRUE, legend = "bottom", 
   nrow = 1, widths = c(1, 0.5, 1))
 
+#### residual map ####
+
+# predicting price for any given Airbnb and calculate the difference to actual price
+# show difference on map with colored scatter plot

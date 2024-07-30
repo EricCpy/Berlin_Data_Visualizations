@@ -1771,6 +1771,10 @@ ggplot(df_percentage, aes(x = language, y = percentage, fill = sentiment)) +
 
 We observed that German reviews are predominantly positive, while English reviews are mostly neutral. Additionally, the sentiment distribution among German reviewers aligns more closely with our general expectations compared to the overall review sentiment overview. Germans tend to rate an Airbnb as either positive or negative, with very few neutral reviews. In contrast, English reviews are generally neutral, with very few negative reviews and occasional positive ones. It's also worth noting that the German and English reviews were analyzed using different sentiment analysis tools, which may have introduced biases towards positive or neutral sentiments. 
 
+# Conclusion
+TODO
+
+
 # References
 
 <div id="refs"></div>

@@ -23,11 +23,6 @@ Airbnb is a leading online marketplace that connects homeowners with individuals
 
 Examining the factors influencing Airbnb characteristics, such as prices, is particularly interesting because these are shaped by a variety of factors like location, seasonality and local events. Understanding these influences can provide valuable insights to find the best deals for an apartment and reveal a broader impact of external factors on Airbnb accommodations. Our report will focus on [Airbnb data](https://insideairbnb.com/get-the-data/) [@corona_get_nodate] from Berlin for the years 2023 and 2024.
 
-
-```{r templateFigure, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
-
-```
-
 **TODO describe listings dataset and reviews dataset**
 **TODO show in which regions are the most airbnbs**
 **TODO describe (briefly!) geo datasets (crime rate, toilets, opnv, gigabit, lor, uwb)**
@@ -43,7 +38,7 @@ Then datasets providing collections of reviews written in different languages fo
 Airbnb listings in Berlin. It includes review, reviewer and listing IDs, as well
 as a date and the textual content of the comment of the review.
 
-```{r templateFigure, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
+```{r templateFigure1, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
 ggplot(raw) + 
   geom_sf(aes(fill = BEZ_NAME)) +
   scale_fill_manual(values = bezirk_colors, name = "BEZ_NAME") +
@@ -52,7 +47,7 @@ ggplot(raw) +
        fill = "Bezirk")
 ```
 
-```{r templateFigure, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
+```{r templateFigure2, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
 ggplot(raw) +
   geom_sf(aes(fill = n), color = "black", size = 0.2) +  # Smaller internal borders
   geom_sf(data = borough_borders, fill = NA, color = "black", size = 1) +  # Larger borders for main boroughs
@@ -62,7 +57,7 @@ ggplot(raw) +
        fill = "Number of Airbnbs")
 
 ```
-```{r templateFigure, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
+```{r templateFigure3, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
 ggplot(airbnb_count, aes(x = reorder(BEZ_NAME, proportion), y = proportion)) +
   geom_bar(stat = "identity", fill = "skyblue") +
   coord_flip() +
@@ -80,7 +75,7 @@ central neighborhoods of Berlin, with Tempelhof-Schoneberg being the only
 exception. Thus the neighborhoods on the outside of Berlin contain a smaller 
 amount of airbnb listings. 
 
-```{r templateFigure, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
+```{r templateFigure4, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
 ggplot(df_listings_cleaned, aes(x = neighbourhood_group_cleansed, y = price)) +
   geom_boxplot(fill = "lightblue") +
   coord_flip() +
@@ -88,7 +83,7 @@ ggplot(df_listings_cleaned, aes(x = neighbourhood_group_cleansed, y = price)) +
        x = "Bezirk",
        y = "Price")
 ```
-```{r templateFigure, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
+```{r templateFigure5, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
 ggplot(df_listings_cleaned, aes(x = neighbourhood_group_cleansed, y = price)) +
   geom_boxplot(fill = "lightblue") +
   coord_flip() +
@@ -102,7 +97,7 @@ price or the availability of the listings. As for the prices it is difficult to
 define clear tendencies, but as an example, listings in Mitte have a higher
 median price.
 
-```{r templateFigure, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
+```{r templateFigure6, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
 ggplot(df_listings_cleaned, aes(x = neighbourhood_group_cleansed, y = availability_365)) +
   geom_boxplot(fill = "lightblue") +
   coord_flip() +
@@ -112,7 +107,7 @@ ggplot(df_listings_cleaned, aes(x = neighbourhood_group_cleansed, y = availabili
   theme_minimal()
 ```
 Doing the same for availability does not yield any clear result.
-```{r templateFigure, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
+```{r templateFigure7, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
 ggplot(df_listings_cleaned, aes(x = room_type)) +
   geom_bar(fill = "green", alpha = 0.7) +
   labs(title = "Number of Airbnbs by Room Type",
@@ -1636,7 +1631,7 @@ score_to_color <- function(score, min_score, max_score) {
 region_data <- region_data %>%
   mutate(color = score_to_color(percentage_listings, min_percentage, max_percentage))
 
-lor <- left_join(geo_lor, region_sentiment_scores, by = c("BEZ_NAME" = "neighbourhood_group_cleansed"))
+lor <- left_join(geo_lor, region_data, by = c("BEZ_NAME" = "neighbourhood_group_cleansed"))
 
 lor_combined <- lor %>%
   group_by(BEZ_ID, BEZ_NAME) %>%

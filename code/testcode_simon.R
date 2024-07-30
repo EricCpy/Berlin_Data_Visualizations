@@ -2267,9 +2267,6 @@ full_model_verbose_post_summary <- readRDS("saved_objects/full_model_verbose_pos
   mutate("total effect" = parameter %in% direct_effect_only)
 
 full_model_verbose_post %>% 
-  pivot_longer(full_model_verbose_post_summary$parameter)
-
-full_model_verbose_post %>% 
   pivot_wider(names_from = "wohnlage", values_from = "delta", names_prefix = "wol_") %>% 
   mutate(
     log_price_wol_1 = reputation+bE*(wol_1)+bPropType,
@@ -2279,12 +2276,13 @@ full_model_verbose_post %>%
   mutate(bezirk = bezirk_levels[bezirk], property_type = property_type_levels[property_type]) %>% 
   pivot_longer(full_model_verbose_post_summary$parameter) %>% 
   sample_frac(0.01) %>% 
-  # filter(name == "bSauna") %>% 
-  mutate(price_diff = exp(log_price+value)-exp(log_price)) %>% 
+  filter(name == "bSauna") %>% 
+  rowwise() %>% 
+  mutate(price_diff = exp(rnorm(1, log_price+value, sigma))-exp(rnorm(1, log_price, sigma))) %>% 
   group_by(name) %>% 
   mutate(perc = str_c(round(100*mean(price_diff>0), 2), " %"), .before = 1) %>% 
-  ggplot(aes(x = price_diff, group = name)) +
-  geom_density() +
+  ggplot(aes(x = price_diff, fill = property_type)) +
+  geom_density(alpha = .5) +
   geom_text(aes(x = 10, 0.05, label = perc)) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   # scale_fill_manual(values = c("gray80", "skyblue")) +
@@ -2340,6 +2338,19 @@ full_model_verbose_post %>%
   ) +
   coord_cartesian(xlim = c(-250, 250))
 
+full_model_post <- readRDS("saved_objects/full_model_post.rds")
+full_model_post %>%
+  pivot_wider(names_from = "wohnlage", values_from = "delta", names_prefix = "wol_") %>% 
+  rowwise() %>% 
+  mutate(
+    price_wol_1 = rnorm(1, reputation+bE*(wol_1)+bPT, sigma),
+    price_wol_2 = rnorm(1, reputation+bE*(wol_1+wol_2)+bPT, sigma),
+    price_wol_3 = rnorm(1, reputation+bE*(wol_1+wol_2+wol_3)+bPT, sigma)
+  ) %>% pivot_longer(cols = starts_with("price_"), values_to = "price", names_prefix = "price_wol_", names_to = "wohnlage") %>% 
+  mutate(bezirk = bezirk_levels[bezirk], property_type = property_type_levels[property_type]) %>% 
+  group_by(bezirk) %>% summarise(median_price = exp(median(price))) %>% 
+  arrange(median_price)
+
 #### final plot 
 
 df_temp <- full_model_post %>%
@@ -2351,12 +2362,12 @@ df_temp <- full_model_post %>%
     price_wol_3 = exp(rnorm(1, reputation+bE*(wol_1+wol_2+wol_3)+bPT, sigma))
   ) %>% pivot_longer(cols = starts_with("price_"), values_to = "price", names_prefix = "price_wol_", names_to = "wohnlage") %>% 
   mutate(bezirk = bezirk_levels[bezirk], property_type = property_type_levels[property_type]) %>% 
-  group_by(bezirk) %>% summarise(median_price = median(price)) %>% 
+  group_by(bezirk) %>% summarise(median_price = median(price), sd_price = sd(price)) %>% 
   arrange(median_price) %>% rowid_to_column() %>% 
   mutate(type = "full model") %>% 
   bind_rows(
     df_airbnb %>% group_by(neighbourhood_group_cleansed) %>%
-      summarise(median_price = median(price)) %>% 
+      summarise(median_price = median(price), sd_price = sd(price)) %>% 
       arrange(median_price) %>% rowid_to_column() %>% 
       mutate(type = "raw data") %>% rename(bezirk = neighbourhood_group_cleansed)
   ) %>% mutate(
@@ -2368,6 +2379,24 @@ df_temp %>%
   ggplot() +
   geom_col(aes(x = median_price, y = bezirk, group = type, fill = as.ordered(rowid), color = type), 
            position = "dodge2", size = 1)
+
+df_temp2 <- full_model_post %>%
+  pivot_wider(names_from = "wohnlage", values_from = "delta", names_prefix = "wol_") %>% 
+  rowwise() %>% 
+  mutate(
+    price_wol_1 = exp(rnorm(1, reputation+bE*(wol_1)+bPT, sigma)),
+    price_wol_2 = exp(rnorm(1, reputation+bE*(wol_1+wol_2)+bPT, sigma)),
+    price_wol_3 = exp(rnorm(1, reputation+bE*(wol_1+wol_2+wol_3)+bPT, sigma))
+  ) %>% pivot_longer(cols = starts_with("price_"), values_to = "price", names_prefix = "price_wol_", names_to = "wohnlage") %>% 
+  mutate(bezirk = bezirk_levels[bezirk], property_type = property_type_levels[property_type]) %>% 
+  select(bezirk, price) %>% mutate(type = "full model") %>% 
+  group_by(bezirk) %>% 
+  mutate(median_price = median(price))
+
+df_temp3 <- df_airbnb %>% rename(Bezirk = neighbourhood_group_cleansed) %>% 
+  group_by(Bezirk) %>% 
+  summarise("mean price" = mean(price), "median price" = median(price), "#Airbnbs" = n()) %>% 
+  mutate(size = -scale(`#Airbnbs`)) %>% rename(bezirk = Bezirk)
 
 # install.packages("CGPfunctions")
 # install.packages("ggthemes")
@@ -2383,4 +2412,99 @@ CGPfunctions::newggslopegraph(
   Caption = NULL,
   ThemeChoice = "gdocs",
   LineColor = bezirk_colors
+  ) +
+  geom_point(data = df_temp %>% filter(type == "full model") %>% mutate(size = scale(sd_price)), aes(size = size, color = bezirk), shape = 1) +
+  geom_point(data = df_temp3, aes(size = size, color = bezirk, fill = bezirk, y = `median price`, x = "raw data"), shape = 1) +
+  scale_size_continuous(range = c(7, 14))
+
+ggplot() +
+  geom_violin(data = df_temp2, aes(y = bezirk, x = price, fill = bezirk)) +
+  geom_boxplot(data = df_temp2, aes(y = bezirk, x = price), width = .2, fill = I("white")) +
+  coord_cartesian(xlim = c(0, 250))
+
+gg1 <- df_temp2 %>% ungroup() %>% mutate(bezirk = fct_reorder(bezirk, median_price)) %>% 
+  ggplot(aes(y = bezirk, x = price, fill = bezirk)) +
+  stat_halfeye() +
+  # stat_halfeye(data = df_airbnb %>% rename(bezirk = neighbourhood_group_cleansed) %>% mutate(type = "raw data"), aes(y = bezirk, x = price, fill = bezirk)) +
+  coord_cartesian(xlim = c(0, 250)) +
+  scale_fill_manual(
+    values = bezirk_colors
+  ) +
+  facet_wrap(~type) +
+  theme(
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title.position = "top",
+    panel.grid = element_blank(),
+    panel.border = element_blank(),
+    plot.margin = unit(c(0, 0, 0, 0), "null"),
+    panel.margin = unit(c(0, 0, 0, 0), "null")
+  ) +
+  ylab(NULL)
+
+gg2 <- df_airbnb %>% 
+  group_by(neighbourhood_group_cleansed) %>% mutate(median_price = median(price)) %>% 
+  ungroup() %>% 
+  mutate(bezirk = fct_reorder(neighbourhood_group_cleansed, median_price)) %>% 
+  mutate(type = "raw data") %>% 
+  ggplot(aes(y = bezirk, x = price, fill = bezirk)) +
+  # stat_halfeye(data = df_temp2 %>% ungroup() %>% mutate(bezirk = fct_reorder(bezirk, median_price)), aes(y = bezirk, x = price, fill = bezirk)) +
+  stat_halfeye() +
+  coord_cartesian(xlim = c(0, 200)) +
+  scale_fill_manual(
+    values = bezirk_colors
+  ) +
+  facet_wrap(~type) +
+  theme(
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title.position = "top",
+    panel.grid = element_blank(),
+    panel.border = element_blank(),
+    plot.margin = unit(c(0, 0, 0, 0), "null"),
+    panel.margin = unit(c(0, 0, 0, 0), "null")
+  ) +
+  ylab(NULL)
+
+ggpubr::ggarrange(gg2, gg1, common.legend = TRUE, legend = "bottom")
+
+df_temp3$size %>% hist()
+
+df_airbnb %>% rename(bezirk = neighbourhood_group_cleansed) %>% mutate(type = "raw data")
+
+
+gg3 <- df_airbnb %>% 
+  group_by(neighbourhood_group_cleansed) %>% mutate(median_price = median(price)) %>% 
+  ungroup() %>% 
+  mutate(bezirk = fct_reorder(neighbourhood_group_cleansed, median_price)) %>% 
+  pull(bezirk) %>% levels() %>% data.frame(bezirk = ., rank = 1:12) %>% 
+  mutate(type = "raw data") %>% bind_rows(
+    df_temp2 %>% ungroup() %>% mutate(bezirk = fct_reorder(bezirk, median_price)) %>% 
+      pull(bezirk) %>% levels() %>% data.frame(bezirk = ., rank = 1:12) %>% 
+      mutate(type = "full model")
+  ) %>% 
+  mutate(rank = ordered(rank)) %>% 
+  ungroup() %>% as_tibble() %>% 
+  ggplot(aes(color = bezirk, x = type, y = rank, group = bezirk)) +
+  geom_line(size = 2,
+            alpha = 0.5) +
+  geom_point(size = 3) +
+  scale_color_manual(
+    values = bezirk_colors,
+    guide = "none"
+  ) +
+  theme_void() +
+  scale_x_discrete(limits=rev) +
+  coord_cartesian(ylim = c(-.5,13.5)) +
+  theme(
+    panel.grid = element_blank(),
+    panel.border = element_blank(),
+    plot.margin = unit(c(0, 0, 0, 0), "null"),
+    panel.margin = unit(c(0, 0, 0, 0), "null")
   )
+
+ggpubr::ggarrange(
+  gg2, gg3, gg1, 
+  common.legend = TRUE, legend = "bottom", 
+  nrow = 1, widths = c(1, 0.5, 1))
+

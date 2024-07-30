@@ -1,5 +1,8 @@
 source("code/setup.R")
 
+img <- readPNG("documents/images/wordcloud_titles.png")
+grid::grid.raster(img)
+
 # Sentiment Analysis
 test <- df_review_sentiments[df_review_sentiments$sentiment_for_name == "negative", c("name", "sentiment_for_name")]
 
@@ -15,8 +18,7 @@ top_languages <- language_counts %>%
 
 ggplot(top_languages, aes(x = reorder(language, count), y = count)) +
   geom_bar(stat = "identity", fill = "steelblue") +
-  labs(title = "Top 10 languages by number of reviews",
-       x = "Language",
+  labs(x = "Language",
        y = "Number of reviews") +
   theme_minimal() +
   coord_flip()
@@ -266,8 +268,8 @@ df_percentage <- df_review_sentiments %>%
   select(language, sentiment, percentage)
 
 ggplot(df_percentage, aes(x = language, y = percentage, fill = sentiment)) +
-  geom_bar(stat = "identity", position = "dodge") +
-  scale_fill_manual(values = c("negative" = "red", "positive" = "green", "neutral" = "blue")) +
+  geom_bar(stat = "identity", position = "dodge", color="black") +
+  scale_fill_manual(values = c("negative" = "#E57373", "positive" = "#81C784", "neutral" = "#64B5F6")) +
   labs(title = "Percentage of Sentiments by Language",
        x = "Language",
        y = "Percentage") +
@@ -678,4 +680,6 @@ server <- function(input, output, session) {
 }
 
 shinyApp(ui, server)
+
+
 

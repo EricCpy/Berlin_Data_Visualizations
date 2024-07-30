@@ -504,20 +504,20 @@ raw <- raw %>%
   left_join(bezirke_name_id, by = c("BEZ_ID" = "BEZ_ID")) %>% 
   left_join(airbnb_count, by = c("BEZ_NAME" = "BEZ_NAME"))
 
-bezirk_colors <- c(
-  "Mitte" = "#FF6347",
-  "Friedrichshain-Kreuzberg" = "#FFD700",
-  "Pankow" = "#ADFF2F",
-  "Charlottenburg-Wilmersdorf" = "#1E90FF",
-  "Spandau" = "#8A2BE2",
-  "Steglitz-Zehlendorf" = "#FF69B4",
-  "Tempelhof-Schöneberg" = "#7FFF00",
-  "Neukölln" = "#00CED1",
-  "Treptow-Köpenick" = "#D2691E",
-  "Marzahn-Hellersdorf" = "#FF4500",
-  "Lichtenberg" = "#32CD32",
-  "Reinickendorf" = "#0000FF"
-)
+# bezirk_colors <- c(
+#   "Mitte" = "#FF6347",
+#   "Friedrichshain-Kreuzberg" = "#FFD700",
+#   "Pankow" = "#ADFF2F",
+#   "Charlottenburg-Wilmersdorf" = "#1E90FF",
+#   "Spandau" = "#8A2BE2",
+#   "Steglitz-Zehlendorf" = "#FF69B4",
+#   "Tempelhof-Schöneberg" = "#7FFF00",
+#   "Neukölln" = "#00CED1",
+#   "Treptow-Köpenick" = "#D2691E",
+#   "Marzahn-Hellersdorf" = "#FF4500",
+#   "Lichtenberg" = "#32CD32",
+#   "Reinickendorf" = "#0000FF"
+# )
 
 #map with numbers
 centroids <- raw %>% 

@@ -35,7 +35,30 @@ Examining the factors influencing Airbnb characteristics, such as prices, is par
 
 ## Data description
 
+Two types of datasets were used. First a dataset providing information about 8384
+Airbnb Listings in Berlin. It includes various attributes related to each listing,
+such as the listing ID, name of the listing, information about the host, the 
+neighborhood, the room type, the price, and the availability throughout the year.
+Then datasets providing collections of reviews written in different languages for
+Airbnb listings in Berlin. It includes review, reviewer and listing IDs, as well
+as a date and the textual content of the comment of the review.
 
+```{r}
+
+```
+
+By plotting maps of the number or the proportion of airbnbs in the different
+neighborhoods of Berlin, we can see that most of the airbnbs are located in the 
+central neighborhoods of Berlin, with Tempelhof-Schoneberg being the only 
+exception. Thus the neighborhoods on the outside of Berlin contain a smaller 
+amount of airbnb listings. 
+
+```{r}
+
+```
+
+We can also try to compare the listings not with respect to the neighborhoods, 
+but with respect to the other attributes, such as the price or the availability.
 
 ## Objectives
 

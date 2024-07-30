@@ -21,102 +21,88 @@ full_refit = F
 # Introduction
 Airbnb is a leading online marketplace that connects homeowners with individuals seeking temporary accommodations. It operates in over 220 countries and regions, making it a global player in the hospitality industry.
 
-Examining the factors influencing Airbnb characteristics, such as prices, is particularly interesting because these are shaped by a variety of factors like location, seasonality and local events. Understanding these influences can provide valuable insights to find the best deals for an apartment and reveal a broader impact of external factors on Airbnb accommodations. Our report will focus on [Airbnb data](https://insideairbnb.com/get-the-data/) [@corona_get_nodate] from Berlin for the years 2023 and 2024.
+Examining the factors influencing Airbnb characteristics, such as prices, is particularly interesting because these are shaped by a variety of factors like location, seasonality and local events. Understanding these influences can provide valuable insights to find the best deals for an apartment and reveal a broader impact of external factors on Airbnb accommodations. Our report will focus on [Airbnb data](https://insideairbnb.com/get-the-data/) from Berlin for the years 2023 and 2024.
 
-**TODO describe listings dataset and reviews dataset**
-**TODO show in which regions are the most airbnbs**
-**TODO describe (briefly!) geo datasets (crime rate, toilets, opnv, gigabit, lor, uwb)**
-**TODO show the price distribution (normal distribution)**
+## Data description and overview
 
-## Data description
+The primary data we used comprised two types of datasets. The first dataset provided information on over 10,000 Airbnb listings in Berlin. This dataset included various attributes related to each listing, such as the listing ID, name, host information, neighborhood, room type, price and more.  
+The second dataset contained over 500,000 reviews written in different languages for Airbnb listings in Berlin. These datasets included review IDs, reviewer IDs, listing IDs, the date of the review and the textual content of each comment.
 
-Two types of datasets were used. First a dataset providing information about 8384
-Airbnb Listings in Berlin. It includes various attributes related to each listing,
-such as the listing ID, name of the listing, information about the host, the 
-neighborhood, the room type, the price, and the availability throughout the year.
-Then datasets providing collections of reviews written in different languages for
-Airbnb listings in Berlin. It includes review, reviewer and listing IDs, as well
-as a date and the textual content of the comment of the review.
+Additionally, we used other datasets containing LOR data for Berlin's neighborhoods, districts and other relevant information, such as the locations of train stations in Berlin. The visualization below displays the various districts of Berlin based on the LOR data.
 
-```{r templateFigure1, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
+```{r districtsInBerlin, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center', fig.cap= "Districts in Berlin", fig.width=5, fig.height=4}
 ggplot(raw) + 
   geom_sf(aes(fill = BEZ_NAME)) +
-  scale_fill_manual(values = bezirk_colors, name = "BEZ_NAME") +
+  scale_fill_manual(values = bezirk_colors, name = "District") +
   theme_void() +
-  labs(title = "Neighborhoods in Berlin",
-       fill = "Bezirk")
+  labs(fill = "Bezirk")
 ```
 
-```{r templateFigure2, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
-ggplot(raw) +
+Using longitude and latitude coordinates of the Airbnbs, we determined their locations within Berlin's neighborhoods. The plot below shows the distribution of Airbnbs across different districts.
+
+```{r numberOfAirbnbsInBerlin, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center', fig.width=9, fig.height=4, fig.cap="Airbnbs by district in Berlin"}
+map_plot <- ggplot(raw) +
   geom_sf(aes(fill = n), color = "black", size = 0.2) +  # Smaller internal borders
   geom_sf(data = borough_borders, fill = NA, color = "black", size = 1) +  # Larger borders for main boroughs
   scale_fill_gradient(low = "lightyellow", high = "darkred", name = "Number of Airbnbs") +
   theme_void() +
-  labs(title = "Number of Airbnbs by neighborhood in Berlin",
-       fill = "Number of Airbnbs")
+  labs(title = "Number of Airbnbs by district in Berlin",
+       fill = "Number of Airbnbs") +
+  theme(plot.title = element_text(hjust = 0.5))
 
-```
-```{r templateFigure3, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
-ggplot(airbnb_count, aes(x = reorder(BEZ_NAME, proportion), y = proportion)) +
+proportion_plot <- ggplot(airbnb_count, aes(x = reorder(BEZ_NAME, proportion), y = proportion)) +
   geom_bar(stat = "identity", fill = "skyblue") +
   coord_flip() +
-  labs(title = "Proportion of Airbnbs by neighborhood in Berlin",
-       x = "Bezirk",
+  labs(title = "Proportion of Airbnbs by district in Berlin",
+       x = "District",
        y = "Proportion of Airbnbs") +
-  theme_minimal()
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
 
-
+grid.arrange(map_plot, proportion_plot, ncol=2)
 ```
 
-By plotting maps of the number or the proportion of airbnbs in the different
-neighborhoods of Berlin, we can see that most of the airbnbs are located in the 
-central neighborhoods of Berlin, with Tempelhof-Schoneberg being the only 
-exception. Thus the neighborhoods on the outside of Berlin contain a smaller 
-amount of airbnb listings. 
-
-```{r templateFigure4, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
-ggplot(df_listings_cleaned, aes(x = neighbourhood_group_cleansed, y = price)) +
-  geom_boxplot(fill = "lightblue") +
-  coord_flip() +
-  labs(title = "Boxplot of Airbnb Prices by neighborhoods",
-       x = "Bezirk",
-       y = "Price")
-```
-```{r templateFigure5, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
-ggplot(df_listings_cleaned, aes(x = neighbourhood_group_cleansed, y = price)) +
-  geom_boxplot(fill = "lightblue") +
-  coord_flip() +
-  labs(title = "Boxplot of Airbnb Prices by neighborhoods",
-       x = "Bezirk",
-       y = "Price")
-```
+By plotting the number or proportion of Airbnbs across Berlin’s districts, it becomes evident that the majority are concentrated in the central areas, with Tempelhof-Schöneberg being a notable exception. Thus the districts on the outside of Berlin have fewer Airbnb listings.
 
 We can also try to compare the neighborhoods on different criteria, such as the
-price or the availability of the listings. As for the prices it is difficult to
-define clear tendencies, but as an example, listings in Mitte have a higher
-median price.
+price or the availability of the listings. With this data, we can examine Airbnb prices across various districts.
 
-```{r templateFigure6, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
-ggplot(df_listings_cleaned, aes(x = neighbourhood_group_cleansed, y = availability_365)) +
+```{r criteriaByDistrict, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center', fig.cap= "Airbnb prices and availability by district", fig.width=8, fig.height=10}
+prices_plot <- ggplot(df_listings_cleaned, aes(x = neighbourhood_group_cleansed, y = price)) +
   geom_boxplot(fill = "lightblue") +
   coord_flip() +
-  labs(title = "Boxplot of Availability by Bezirk",
-       x = "Bezirk",
+  labs(title = "Prices by district",
+       x = "District",
+       y = "Price") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+availability_plot <- ggplot(df_listings_cleaned, aes(x = neighbourhood_group_cleansed, y = availability_365)) +
+  geom_boxplot(fill = "lightblue") +
+  coord_flip() +
+  labs(title = "Availability by district",
+       x = "District",
        y = "Availability (days per year)") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+grid.arrange(prices_plot, availability_plot, nrow=2)
+```
+
+For the prices it is difficult to define clear tendencies, but as an example, listings in Berlin-Mitte have a higher median price.  
+Doing the same for availability does not yield any clear result.
+
+We can also take a look at the different types of listings. It appears that the majority are entire homes or apartments, while only a few are private rooms.
+
+```{r airbnbsByRoomType, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center', fig.cap= "Number of Airbnbs by room type", fig.width=5, fig.height=4}
+ggplot(df_listings_cleaned, aes(x = room_type)) +
+  geom_bar(fill = "skyblue") +
+  labs(x = "Room type",
+       y = "Number of listings") +
   theme_minimal()
 ```
-Doing the same for availability does not yield any clear result.
-```{r templateFigure7, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
-ggplot(df_listings_cleaned, aes(x = room_type)) +
-  geom_bar(fill = "green", alpha = 0.7) +
-  labs(title = "Number of Airbnbs by Room Type",
-       x = "Room Type",
-       y = "Number of Listings")
-```
-Finally we can look at the different types of rooms in the listings. And we can
-see that most of them are entire homes/appartements, and only some of them are private
-rooms.
+
+Overall, it's clear that there are many more possibilities for visualization, but we focused on specific objectives to keep the project's scope manageable.
 
 ## Objectives
 

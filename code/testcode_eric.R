@@ -1,6 +1,6 @@
 source("code/setup.R")
 
-img <- readPNG("../documents/images/wordcloud_titles.png")
+img <- readPNG("./documents/images/wordcloud_titles.png")
 grid::grid.raster(img)
 
 # Sentiment Analysis

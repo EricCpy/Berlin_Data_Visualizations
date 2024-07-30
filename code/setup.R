@@ -21,5 +21,5 @@ library(ggpubr)
 library(ggthemes)
 library(CGPfunctions)
 
-source("../code/helper_functions.R")
-source("../code/data_etl.R")
+source("./code/helper_functions.R")
+source("./code/data_etl.R")

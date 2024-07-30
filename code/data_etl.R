@@ -2,9 +2,9 @@
 # In my opionion the only really interesting use case is to analyse what types of airbnbs are unlisted, during a time period. 
 
 # ---- LISTINGS ----
-df_listings <- read.csv("../data/airbnb/March_2024/listings_detailed.csv")
+df_listings <- read.csv("./data/airbnb/March_2024/listings_detailed.csv")
 
-df_title_sentiments <- read.csv("../data/airbnb/March_2024/sentiments.csv") %>% 
+df_title_sentiments <- read.csv("./data/airbnb/March_2024/sentiments.csv") %>% 
   mutate(sentiment = ordered(sentiment, levels = c("negative", "neutral", "positive"))) %>% 
   rename_at(vars(-id), ~str_c(., "_for_name"))
 
@@ -24,7 +24,7 @@ df_listings_cleaned <- df_listings %>%
 
 # ---- REVIEWS ----
 
-df_review_sentiments <- read.csv("../data/airbnb/review_sentiments.csv") %>% 
+df_review_sentiments <- read.csv("./data/airbnb/review_sentiments.csv") %>% 
   select(-id) %>%
   as_tibble()
 
@@ -131,33 +131,33 @@ bezirk_name_id <- tribble(
 
 ##### LOR #####
 
-lor_inhabitants <- read_csv2("../data/lor/einwohner_lor_2020-12.csv", col_types = "c") %>% 
+lor_inhabitants <- read_csv2("./data/lor/einwohner_lor_2020-12.csv", col_types = "c") %>% 
   select(-c(ZEIT, BEZ, PGR, BZR, PLR, STADTRAUM))
-lor_foreigner <- read_csv2("../data/lor/einwohner_foreign_lor_2020-12.csv", col_types = "c") %>% 
+lor_foreigner <- read_csv2("./data/lor/einwohner_foreign_lor_2020-12.csv", col_types = "c") %>% 
   select(-c(ZEIT, BEZ, PGR, BZR, PLR, STADTRAUM))
-lor_migration_bg <- read_csv2("../data/lor/einwohner_migrationbackground_lor_2020-12.csv", col_types = "c") %>% 
+lor_migration_bg <- read_csv2("./data/lor/einwohner_migrationbackground_lor_2020-12.csv", col_types = "c") %>% 
   select(-c(ZEIT, BEZ, PGR, BZR, PLR, STADTRAUM))
 
 ###### crime rate ######
 
-crime_rate <- readxl::read_excel("../data/Kriminalität Fallzahlen&HZ 2014-2023.xlsx", skip = 4, sheet = "Fallzahlen_2023")
+crime_rate <- readxl::read_excel("./data/Kriminalität Fallzahlen&HZ 2014-2023.xlsx", skip = 4, sheet = "Fallzahlen_2023")
 
 ###### gigabit internet ######
 
-gigabit_supply <- rio::import("../data/Berlin_LOR_Versorgungsdaten_Stand_2402.xlsx", skip = 3)
+gigabit_supply <- rio::import("./data/Berlin_LOR_Versorgungsdaten_Stand_2402.xlsx", skip = 3)
 
 ###### traffic accidents ######
-traffic_accidents <- rio::import("../data/AfSBBB_BE_LOR_Strasse_Strassenverkehrsunfaelle_2020_Datensatz.csv") %>% 
+traffic_accidents <- rio::import("./data/AfSBBB_BE_LOR_Strasse_Strassenverkehrsunfaelle_2020_Datensatz.csv") %>% 
   mutate(LOR_ab_2021 = str_pad(LOR_ab_2021, 8, "0", side = "left")) %>% group_by(LOR_ab_2021) %>% 
   summarise(count = n()) %>% rename(PLR_ID = LOR_ab_2021)
 
 ##### election units #####
 
-election_2016_party_vote <- read_csv2("../data/Wahlergebnisse Berlin 2016/Berlin_AH16_W2.csv")
+election_2016_party_vote <- read_csv2("./data/Wahlergebnisse Berlin 2016/Berlin_AH16_W2.csv")
 
 ##### public toilets #####
 
-toilets <- rio::import("../data/berliner-toiletten-standorte.xlsx", skip = 10)
+toilets <- rio::import("./data/berliner-toiletten-standorte.xlsx", skip = 10)
 toilet_coordinates <- toilets[, c("Längengrad", "Breitengrad")] |> 
   mutate_all(~str_replace(., ",", ".")) %>% 
   drop_na() %>%
@@ -170,7 +170,7 @@ toilet_coordinates <- toilets[, c("Längengrad", "Breitengrad")] |>
 
 ##### wohnlage #####
 
-airbnb_with_rent_data_median_knn <- readRDS("../saved_objects/airbnb_with_rent_data_median_knn.rds") %>% 
+airbnb_with_rent_data_median_knn <- readRDS("./saved_objects/airbnb_with_rent_data_median_knn.rds") %>% 
   mutate(airbnb_id = as.character(airbnb_id)) %>% 
   right_join(
     df_airbnb %>% select(id),
@@ -189,7 +189,7 @@ airbnb_coordinates <- df_airbnb[, c("longitude", "latitude")] |>
 
 ##### election units #####
 
-geo_elect_units <- sf::st_read(dsn = "../data/Wahlbezirke") %>% 
+geo_elect_units <- sf::st_read(dsn = "./data/Wahlbezirke") %>% 
   st_make_valid(tol = 0.00001) %>% st_transform(4326) %>% 
   mutate(
     BEZNAME = str_replace_all(BEZNAME, "\xf6", "ö"),
@@ -220,7 +220,7 @@ election_results_summed_for_BWB <- election_2016_party_vote_UWB_with_BWB %>% gro
 
 ##### LOR #####
 
-geo_lor <- sf::st_read(dsn = "../data/lor/Planung") %>% 
+geo_lor <- sf::st_read(dsn = "./data/lor/Planung") %>% 
   st_make_valid(tol = 0.00001) %>% st_transform(4326) %>% 
   mutate(
     BEZ_ID = str_sub(PLR_ID, 1, 2),
@@ -244,9 +244,9 @@ geo_bezirk <- geo_lor %>% aggregate(
 
 ##### opnv #####
 
-opnv_rails <- sf::st_read(dsn = "../data/OPNV/Strecken/") %>% 
+opnv_rails <- sf::st_read(dsn = "./data/OPNV/Strecken/") %>% 
   st_make_valid(tol = 0.00001) %>% st_transform(4326)
-opnv_stations <- sf::st_read(dsn = "../data/OPNV/Stationen/") %>% 
+opnv_stations <- sf::st_read(dsn = "./data/OPNV/Stationen/") %>% 
   st_make_valid(tol = 0.00001) %>% st_transform(4326)
 
 opnv_rails_no_tram_berlin <- opnv_rails %>% 
@@ -269,7 +269,7 @@ opnv_stations_no_tram_berlin <- opnv_stations %>%
 # airbnb_opnv_distances <- st_distance(opnv_stations_no_tram_berlin, airbnb_coordinates)
 # saveRDS(airbnb_opnv_distances, "saved_objects/airbnb_opnv_distances.rds")
 
-airbnb_opnv_distances <- readRDS("../saved_objects/airbnb_opnv_distances.rds")
+airbnb_opnv_distances <- readRDS("./saved_objects/airbnb_opnv_distances.rds")
 df_airbnb <- df_airbnb %>% bind_cols(
   distance_opnv = apply(airbnb_opnv_distances, 2, min)
   )
@@ -279,7 +279,7 @@ df_airbnb <- df_airbnb %>% bind_cols(
 # airbnb_toilet_distances <- st_distance(toilet_coordinates, airbnb_coordinates)
 # saveRDS(airbnb_toilet_distances, "saved_objects/airbnb_toilet_distances.rds")
 
-airbnb_toilet_distances <- readRDS("../saved_objects/airbnb_toilet_distances.rds")
+airbnb_toilet_distances <- readRDS("./saved_objects/airbnb_toilet_distances.rds")
 df_airbnb <- df_airbnb %>% bind_cols(
   distance_toilet = apply(airbnb_toilet_distances, 2, min)
 )
@@ -475,7 +475,7 @@ total_airbnbs <- sum(airbnb_count_by_neiborhood$n)
 airbnb_count_by_neiborhood <- airbnb_count_by_neiborhood %>%
   mutate(proportion = n / total_airbnbs)
 
-raw <- sf::st_read(dsn = "../data/lor/Planung/lor_plr.shp") %>% 
+raw <- sf::st_read(dsn = "data/lor/Planung/lor_plr.shp") %>% 
   st_make_valid() %>% 
   st_transform(4326) %>% 
   mutate(
@@ -510,7 +510,7 @@ bezirke_name_id <- tribble(
 )
 
 raw <- raw %>% 
-  left_join(bezirke_name_id, by = c("BEZ_ID" = "BEZ_ID")) 
+  left_join(bezirke_name_id, by = c("BEZ_ID" = "BEZ_ID"))
 
 sf_airbnb_by_neighborhood <- raw %>% 
   left_join(airbnb_count_by_neiborhood, by = c("BEZ_NAME" = "BEZ_NAME"))
@@ -518,28 +518,28 @@ sf_airbnb_by_neighborhood <- raw %>%
 sf_airbnb_by_LOR <- raw %>% 
   left_join(airbnb_count_by_LOR, by = c("PLR_ID" = "PLR_ID"))
 
-bezirk_colors <- c(
-  "Mitte" = "#FF6347",
-  "Friedrichshain-Kreuzberg" = "#FFD700",
-  "Pankow" = "#ADFF2F",
-  "Charlottenburg-Wilmersdorf" = "#1E90FF",
-  "Spandau" = "#8A2BE2",
-  "Steglitz-Zehlendorf" = "#FF69B4",
-  "Tempelhof-Schöneberg" = "#7FFF00",
-  "Neukölln" = "#00CED1",
-  "Treptow-Köpenick" = "#D2691E",
-  "Marzahn-Hellersdorf" = "#FF4500",
-  "Lichtenberg" = "#32CD32",
-  "Reinickendorf" = "#0000FF"
-)
+# bezirk_colors <- c(
+#   "Mitte" = "#FF6347",
+#   "Friedrichshain-Kreuzberg" = "#FFD700",
+#   "Pankow" = "#ADFF2F",
+#   "Charlottenburg-Wilmersdorf" = "#1E90FF",
+#   "Spandau" = "#8A2BE2",
+#   "Steglitz-Zehlendorf" = "#FF69B4",
+#   "Tempelhof-Schöneberg" = "#7FFF00",
+#   "Neukölln" = "#00CED1",
+#   "Treptow-Köpenick" = "#D2691E",
+#   "Marzahn-Hellersdorf" = "#FF4500",
+#   "Lichtenberg" = "#32CD32",
+#   "Reinickendorf" = "#0000FF"
+# )
 
 #map with numbers
-centroids <- raw %>% 
+centroids <- sf_airbnb_by_neighborhood %>% 
   group_by(BEZ_NAME) %>% 
   summarise(geometry = st_centroid(st_union(geometry)), n = first(n))
 
 #number of airbnbs on a scale (try log scale)
-borough_borders <- raw %>%
+borough_borders <- sf_airbnb_by_neighborhood %>%
   group_by(BEZ_ID) %>%
   summarise(geometry = st_union(geometry))
 

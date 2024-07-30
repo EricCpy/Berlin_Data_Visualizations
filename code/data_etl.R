@@ -466,16 +466,16 @@ wohnlage -> reputation
 
 ### Basic plots data
 
-airbnb_count <- df_listings_cleaned %>% 
+airbnb_count_by_neiborhood <- df_listings_cleaned %>% 
   count(neighbourhood_group_cleansed, sort = TRUE) %>% 
   rename(BEZ_NAME = neighbourhood_group_cleansed)
 
-total_airbnbs <- sum(airbnb_count$n)
+total_airbnbs <- sum(airbnb_count_by_neiborhood$n)
 
-airbnb_count <- airbnb_count %>%
+airbnb_count_by_neiborhood <- airbnb_count_by_neiborhood %>%
   mutate(proportion = n / total_airbnbs)
 
-raw <- sf::st_read(dsn = "data/lor/Planung/lor_plr.shp") %>% 
+raw <- sf::st_read(dsn = "../data/lor/Planung/lor_plr.shp") %>% 
   st_make_valid() %>% 
   st_transform(4326) %>% 
   mutate(
@@ -483,6 +483,15 @@ raw <- sf::st_read(dsn = "data/lor/Planung/lor_plr.shp") %>%
     PGR_ID = str_sub(PLR_ID, 1, 4),
     BZR_ID = str_sub(PLR_ID, 1, 6)
   )
+
+airbnb_sf <- sf::st_as_sf(df_listings_cleaned, coords = c("longitude", "latitude"), crs = st_crs(raw))
+
+airbnb_count_by_LOR <- raw %>%
+  st_join(airbnb_sf, join = sf::st_intersects) %>%
+  group_by(PLR_ID) %>% # Replace 'region_id' with the actual column name of your region IDs
+  summarise(n = n()) %>% 
+  st_drop_geometry() %>%
+  select(PLR_ID, n)
 
 bezirke_name_id <- tribble(
   ~BEZ_NAME, ~BEZ_ID,
@@ -501,8 +510,13 @@ bezirke_name_id <- tribble(
 )
 
 raw <- raw %>% 
-  left_join(bezirke_name_id, by = c("BEZ_ID" = "BEZ_ID")) %>% 
-  left_join(airbnb_count, by = c("BEZ_NAME" = "BEZ_NAME"))
+  left_join(bezirke_name_id, by = c("BEZ_ID" = "BEZ_ID")) 
+
+sf_airbnb_by_neighborhood <- raw %>% 
+  left_join(airbnb_count_by_neiborhood, by = c("BEZ_NAME" = "BEZ_NAME"))
+
+sf_airbnb_by_LOR <- raw %>% 
+  left_join(airbnb_count_by_LOR, by = c("PLR_ID" = "PLR_ID"))
 
 bezirk_colors <- c(
   "Mitte" = "#FF6347",

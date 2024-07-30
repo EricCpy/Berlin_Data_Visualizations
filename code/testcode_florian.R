@@ -9,7 +9,7 @@ total_airbnbs <- sum(airbnb_count$n)
 airbnb_count <- airbnb_count %>%
   mutate(proportion = n / total_airbnbs)
 
-raw <- sf::st_read(dsn = "data/lor/Planung/lor_plr.shp") %>% 
+raw <- sf::st_read(dsn = "../data/lor/Planung/lor_plr.shp") %>% 
   st_make_valid() %>% 
   st_transform(4326) %>% 
   mutate(

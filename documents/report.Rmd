@@ -24,9 +24,7 @@ Airbnb is a leading online marketplace that connects homeowners with individuals
 Examining the factors influencing Airbnb characteristics, such as prices, is particularly interesting because these are shaped by a variety of factors like location, seasonality and local events. Understanding these influences can provide valuable insights to find the best deals for an apartment and reveal a broader impact of external factors on Airbnb accommodations. Our report will focus on [Airbnb data](https://insideairbnb.com/get-the-data/) [@corona_get_nodate] from Berlin for the years 2023 and 2024.
 
 **TODO describe listings dataset and reviews dataset**
-**TODO show in which regions are the most airbnbs**
 **TODO describe (briefly!) geo datasets (crime rate, toilets, opnv, gigabit, lor, uwb)**
-**TODO show the price distribution (normal distribution)**
 
 ## Data description
 
@@ -38,31 +36,28 @@ Then datasets providing collections of reviews written in different languages fo
 Airbnb listings in Berlin. It includes review, reviewer and listing IDs, as well
 as a date and the textual content of the comment of the review.
 
-```{r templateFigure1, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
+```{r templateFigure1, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Neighborhoods in Berlin", fig.align='center'}
 ggplot(raw) + 
   geom_sf(aes(fill = BEZ_NAME)) +
   scale_fill_manual(values = bezirk_colors, name = "BEZ_NAME") +
   theme_void() +
-  labs(title = "Neighborhoods in Berlin",
-       fill = "Bezirk")
+  labs(fill = "Bezirk")
 ```
 
-```{r templateFigure2, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
-ggplot(raw) +
+```{r templateFigure2, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Number of Airbnbs by neighborhood in Berlin", fig.align='center'}
+ggplot(sf_airbnb_by_neighborhood) +
   geom_sf(aes(fill = n), color = "black", size = 0.2) +  # Smaller internal borders
   geom_sf(data = borough_borders, fill = NA, color = "black", size = 1) +  # Larger borders for main boroughs
   scale_fill_gradient(low = "lightyellow", high = "darkred", name = "Number of Airbnbs") +
   theme_void() +
-  labs(title = "Number of Airbnbs by neighborhood in Berlin",
-       fill = "Number of Airbnbs")
+  labs(fill = "Number of Airbnbs")
 
 ```
-```{r templateFigure3, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
+```{r templateFigure3, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Proportion of Airbnbs by neighborhood in Berlin", fig.align='center'}
 ggplot(airbnb_count, aes(x = reorder(BEZ_NAME, proportion), y = proportion)) +
   geom_bar(stat = "identity", fill = "skyblue") +
   coord_flip() +
-  labs(title = "Proportion of Airbnbs by neighborhood in Berlin",
-       x = "Bezirk",
+  labs(x = "Bezirk",
        y = "Proportion of Airbnbs") +
   theme_minimal()
 
@@ -72,10 +67,32 @@ ggplot(airbnb_count, aes(x = reorder(BEZ_NAME, proportion), y = proportion)) +
 By plotting maps of the number or the proportion of airbnbs in the different
 neighborhoods of Berlin, we can see that most of the airbnbs are located in the 
 central neighborhoods of Berlin, with Tempelhof-Schoneberg being the only 
-exception. Thus the neighborhoods on the outside of Berlin contain a smaller 
-amount of airbnb listings. 
+exception. We can use more detailed unit, called LOR (Lebensweltlich Orientierter Raum) - they are subdivisions, used by Berlin's municipal services for statistics and planning. Berlin provides a lot of data with that level of granularity.
 
-```{r templateFigure4, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
+```{r templateFigure4, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Number of Airbnbs by LOR", fig.align='center'}
+ggplot(sf_airbnb_by_LOR) +
+  geom_sf(aes(fill = n), color = "black", size = 0.2) +  # Smaller internal borders
+  geom_sf(data = borough_borders, fill = NA, color = "black", size = 1) +  # Larger borders for main boroughs
+  scale_fill_gradient(low = "lightyellow", high = "darkred", name = "Number of Airbnbs") +
+  theme_void() +
+  labs(fill = "Number of Airbnbs")
+
+```
+
+This figure gives us much more detailed view - we can see that AirBnBs are highly  concentrated in the center, with the exception of Tiergarten-Brandenburger Tor area. There are not many residential buildings there, so it seems reasonable.
+
+```{r templateFigure5, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Price distribution of AirBnBs", fig.align='center'}
+ggplot(df_listings_cleaned, aes(x = price)) +
+  geom_histogram(aes(y = ..density..), bins = 30, fill = "lightblue", color = "black", alpha = 0.7) +
+  geom_density(color = "red", size = 1) +
+  theme_minimal() +
+  labs(x = "Price",
+       y = "Density")
+```
+
+As we can see, the price distribution is not normal - it is skewed, with peak around 100 euros and long positive tail. This is usual for rent prices, as this category would include many different classes - both economy and luxury. We can also look if there is any variance in prices by neighborhood.
+
+```{r templateFigure6, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
 ggplot(df_listings_cleaned, aes(x = neighbourhood_group_cleansed, y = price)) +
   geom_boxplot(fill = "lightblue") +
   coord_flip() +
@@ -83,7 +100,7 @@ ggplot(df_listings_cleaned, aes(x = neighbourhood_group_cleansed, y = price)) +
        x = "Bezirk",
        y = "Price")
 ```
-```{r templateFigure5, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
+```{r templateFigure7, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
 ggplot(df_listings_cleaned, aes(x = neighbourhood_group_cleansed, y = price)) +
   geom_boxplot(fill = "lightblue") +
   coord_flip() +
@@ -97,7 +114,7 @@ price or the availability of the listings. As for the prices it is difficult to
 define clear tendencies, but as an example, listings in Mitte have a higher
 median price.
 
-```{r templateFigure6, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
+```{r templateFigure8, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
 ggplot(df_listings_cleaned, aes(x = neighbourhood_group_cleansed, y = availability_365)) +
   geom_boxplot(fill = "lightblue") +
   coord_flip() +
@@ -107,7 +124,7 @@ ggplot(df_listings_cleaned, aes(x = neighbourhood_group_cleansed, y = availabili
   theme_minimal()
 ```
 Doing the same for availability does not yield any clear result.
-```{r templateFigure7, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
+```{r templateFigure9, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
 ggplot(df_listings_cleaned, aes(x = room_type)) +
   geom_bar(fill = "green", alpha = 0.7) +
   labs(title = "Number of Airbnbs by Room Type",
@@ -1395,7 +1412,7 @@ The model is often pretty sure that the mean price for an Airbnb with a selected
 In this section, we analyze the sentiments of reviews and titles using existing sentiment analysis tools. Most tools in this field are designed to work with only one language and provide inaccurate analyses for texts in other languages. Therefore, our first step was to use a language detection tool to identify the languages of all texts. Upon determining the languages, we found that our reviews mostly consist of English and German reviews.
 
 ```{r topLanguages, echo=FALSE, message=FALSE, warning=FALSE, fig.cap="Top 10 languages by review count", fig.align='center', fig.width=6, fig.height=4}
-img <- readPNG("documents/images/languages.png")
+img <- readPNG("../documents/images/languages.png")
 grid::grid.raster(img)
 ```
 
@@ -1416,7 +1433,7 @@ Here are three examples demonstrating the Sentiment analysis tools:
 To better understand the titles, we first performed a word analysis and filtered out the top entities from the titles.
 
 ```{r wordCloudOfTitles, echo=FALSE, message=FALSE, warning=FALSE, fig.cap="Wordcloud of Titles", fig.align='center', fig.width=8, fig.height=4}
-img <- readPNG("documents/images/wordcloud_titles.png")
+img <- readPNG("../documents/images/wordcloud_titles.png")
 grid::grid.raster(img)
 ```
 

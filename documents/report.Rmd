@@ -52,18 +52,76 @@ ggplot(raw) +
        fill = "Bezirk")
 ```
 
+```{r templateFigure, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
+ggplot(raw) +
+  geom_sf(aes(fill = n), color = "black", size = 0.2) +  # Smaller internal borders
+  geom_sf(data = borough_borders, fill = NA, color = "black", size = 1) +  # Larger borders for main boroughs
+  scale_fill_gradient(low = "lightyellow", high = "darkred", name = "Number of Airbnbs") +
+  theme_void() +
+  labs(title = "Number of Airbnbs by neighborhood in Berlin",
+       fill = "Number of Airbnbs")
+
+```
+```{r templateFigure, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
+ggplot(airbnb_count, aes(x = reorder(BEZ_NAME, proportion), y = proportion)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  coord_flip() +
+  labs(title = "Proportion of Airbnbs by neighborhood in Berlin",
+       x = "Bezirk",
+       y = "Proportion of Airbnbs") +
+  theme_minimal()
+
+
+```
+
 By plotting maps of the number or the proportion of airbnbs in the different
 neighborhoods of Berlin, we can see that most of the airbnbs are located in the 
 central neighborhoods of Berlin, with Tempelhof-Schoneberg being the only 
 exception. Thus the neighborhoods on the outside of Berlin contain a smaller 
 amount of airbnb listings. 
 
-```{r}
-
+```{r templateFigure, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
+ggplot(df_listings_cleaned, aes(x = neighbourhood_group_cleansed, y = price)) +
+  geom_boxplot(fill = "lightblue") +
+  coord_flip() +
+  labs(title = "Boxplot of Airbnb Prices by neighborhoods",
+       x = "Bezirk",
+       y = "Price")
+```
+```{r templateFigure, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
+ggplot(df_listings_cleaned, aes(x = neighbourhood_group_cleansed, y = price)) +
+  geom_boxplot(fill = "lightblue") +
+  coord_flip() +
+  labs(title = "Boxplot of Airbnb Prices by neighborhoods",
+       x = "Bezirk",
+       y = "Price")
 ```
 
-We can also try to compare the listings not with respect to the neighborhoods, 
-but with respect to the other attributes, such as the price or the availability.
+We can also try to compare the neighborhoods on different criteria, such as the
+price or the availability of the listings. As for the prices it is difficult to
+define clear tendencies, but as an example, listings in Mitte have a higher
+median price.
+
+```{r templateFigure, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
+ggplot(df_listings_cleaned, aes(x = neighbourhood_group_cleansed, y = availability_365)) +
+  geom_boxplot(fill = "lightblue") +
+  coord_flip() +
+  labs(title = "Boxplot of Availability by Bezirk",
+       x = "Bezirk",
+       y = "Availability (days per year)") +
+  theme_minimal()
+```
+Doing the same for availability does not yield any clear result.
+```{r templateFigure, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Template", fig.align='center'}
+ggplot(df_listings_cleaned, aes(x = room_type)) +
+  geom_bar(fill = "green", alpha = 0.7) +
+  labs(title = "Number of Airbnbs by Room Type",
+       x = "Room Type",
+       y = "Number of Listings")
+```
+Finally we can look at the different types of rooms in the listings. And we can
+see that most of them are entire homes/appartements, and only some of them are private
+rooms.
 
 ## Objectives
 

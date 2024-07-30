@@ -1189,13 +1189,14 @@ ggplotly(gg_pred)
 
 In this section, we analyze the sentiments of reviews and titles using existing sentiment analysis tools. Most tools in this field are designed to work with only one language and provide inaccurate analyses for texts in other languages. Therefore, our first step was to use a language detection tool to identify the languages of all texts. Upon determining the languages, we found that our reviews mostly consist of English and German reviews.
 
-<p align="center">
-  <img src="images/languages.png" alt="Top 10 languages by review count">
-</p>
+```{r topLanguages, echo=FALSE, message=FALSE, warning=FALSE, fig.cap="Top 10 languages by review count", fig.align='center', fig.width=6, fig.height=4}
+img <- readPNG("documents/images/languages.png")
+grid::grid.raster(img)
+```
 
 Due to the computational effort required to analyze reviews in all languages (estimated 30 hours of computation time), we decided to analyze only the English and German texts. We also considered translating all texts into English after detecting the language using translation libraries that access APIs like Google Translate, as well as translation models. However, this approach also posed computational challenges (estimated > 10 hours). Consequently, we chose to focus solely on the English and German texts.
 
-For sentiment analysis, we used the [VADER Sentiment Analysis tool](https://github.com/cjhutto/vaderSentiment) for English texts, which is fast but less robust. For German texts, we used the [German Sentiment tool](https://github.com/oliverguhr/german-sentiment), which is slower but more robust.
+For sentiment analysis, we used the [VADER Sentiment Analysis tool](https://github.com/cjhutto/vaderSentiment) for English texts, which is fast but less accurate. For German texts, we used the [German Sentiment tool](https://github.com/oliverguhr/german-sentiment), which is slower but more accurate.
 
 In the following sections, we will first evaluate the sentiment analysis of the titles and then of the reviews. Sentiments can be positive, negative or neutral. Both analysis tools also provide a percentage score for the sentiments. For the analysis, we assumed that the sentiment analysis tools did not produce fundamentally incorrect results. Additionally, both tools operate on entire texts and include the context of a text into the sentiment.
 
@@ -1209,19 +1210,20 @@ Here are three examples demonstrating the German sentiment analysis tool along w
 
 To better understand the titles, we first performed a word analysis and filtered out the top entities from the titles.
 
-<p align="center">
-  <img src="images/wordcloud_titles.png" alt="Wordcloud of Titles" width="85%">
-</p>
+```{r wordCloudOfTitles, echo=FALSE, message=FALSE, warning=FALSE, fig.cap="Wordcloud of Titles", fig.align='center', fig.width=8, fig.height=4}
+img <- readPNG("documents/images/wordcloud_titles.png")
+grid::grid.raster(img)
+```
 
 From this, we can see that the most commonly used entities are the names of neighborhoods, which also have the most Airbnbs. Additionally, positive adjectives like "cozy" or "stylish" are often used in the titles of Airbnbs.
 
 Based on the words used and the general expectation that hosts want to leave a positive impression on potential customers, our initial expectation was that most titles would have a positive or neutral sentiment. The following images will show the real distribution of sentiments.
 
-```{r sentimentsTitles, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Sentiment count of titles", fig.align='center', fig.width=5, fig.height=4}
+```{r sentimentsTitles, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Sentiment count of titles", fig.align='center', fig.width=5.5, fig.height=4}
 ggplot(df_listings, aes(x = sentiment_for_name, fill = sentiment_for_name)) +
   geom_bar(color="black") +
   scale_fill_manual(values = c("negative" = "#E57373", "positive" = "#81C784", "neutral" = "#64B5F6")) +
-  labs(title = "Sentiment count of titles", x = "Sentiment", y = "Count") +
+  labs(x = "Sentiment", y = "Count", fill = "Sentiment") +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5))
 ```
@@ -1238,19 +1240,19 @@ This raises the question of what impact the sentiment of a title has on the pric
 
 Since we have some outliers in the price data, we will examine the price either within a 95% confidence interval or the log price. The 95% confidence interval is a range within which we expect the true price to lie 95% of the time, giving us a more reliable estimate by reducing the impact of extreme values. To use the 95% confidence interval, we assume that the data is independently and identically distributed (iid) and approximately normally distributed. The following figures show the price of Airbnbs across different sentiment categories.
 
-```{r violinPlotLogTitles, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Prices (log) of title sentiments", fig.align='center', fig.width=5, fig.height=4}
+```{r violinPlotLogTitles, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Prices (log) of title sentiments", fig.align='center', fig.width=5.5, fig.height=4}
 ggplot(df_listings_cleaned, aes(x = sentiment_for_name, y = log_price, fill = sentiment_for_name)) +
   geom_violin(trim = TRUE) +
   scale_fill_manual(values = c("negative" = "#E57373", "positive" = "#81C784", "neutral" = "#64B5F6")) +
   geom_boxplot(width = 0.1, fill = "white") +
-  labs(title = "Distribution of prices by sentiment", x = "Sentiment", y = "Log(Price)", fill="Sentiment") +
+  labs(x = "Sentiment", y = "Log(Price)", fill="Sentiment") +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
 When comparing sentiments with the log price, we can see that the prices of Airbnbs with negative sentiments are almost identical to those with neutral sentiments. Most reviews for both categories fall within a price between *4.3* and *4.9*. For positive sentiments, we observe a slightly different pattern. The number of high priced Airbnbs decreases earlier than in the negative and neutral categories, although the decline is less steep. This and the boxplot indicate that there are more Airbnbs with positive titles at higher prices.
 
-```{r violinPlotCITitles, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Prices (95% CI) of title sentiments", fig.align='center', fig.width=8, fig.height=4}
+```{r violinPlotCITitles, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Prices (95% CI) of title sentiments", fig.align='center', fig.width=10, fig.height=4}
 mean_price <- mean(df_listings_cleaned$price)
 # mean_price
 sd_price <- sd(df_listings_cleaned$price)
@@ -1273,7 +1275,7 @@ plot_violin <- ggplot(df_filtered, aes(x = sentiment_for_name, y = price, fill =
 plot_density <- ggplot(df_filtered, aes(x = price, fill = sentiment_for_name)) +
   geom_density(alpha = 0.5) +
   scale_fill_manual(values = c("negative" = "#E57373", "positive" = "#81C784", "neutral" = "#64B5F6")) +
-  labs(title = "Density of Prices by Sentiment", x = "Price", y = "Density", fill = "Sentiment") +
+  labs(title = "Density of prices by sentiment", x = "Price", y = "Density", fill = "Sentiment") +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5))
 
@@ -1288,11 +1290,11 @@ In conclusion, there are small differences in price between the title sentiments
 
 As with the titles, we first took a general look at the reviews. We observed that there are very few negative reviews, with the majority being either positive or neutral.
 
-```{r sentimentsOfreviews, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Sentiment count of reviews", fig.align='center', fig.width=5, fig.height=4}
+```{r sentimentsOfreviews, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Sentiment count of reviews", fig.align='center', fig.width=5.5, fig.height=4}
 ggplot(df_review_sentiments, aes(x = sentiment, fill = sentiment)) +
   geom_bar(color = "black") +
   scale_fill_manual(values = c("negative" = "#E57373", "positive" = "#81C784", "neutral" = "#64B5F6")) +
-  labs(title = "Sentiment count of reviews", x = "Sentiment", y = "Count") +
+  labs(x = "Sentiment", y = "Count", fill = "Sentiment") +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5))
 
@@ -1305,7 +1307,7 @@ We hypothesize that many reviews cover both positive and negative aspects, leadi
 
 As with the titles, we analyzed the log price and the 95% confidence interval for review sentiments. However, instead of examining just *8,384* titles, we now consider *367,165* reviews. While each Airbnb listing can have only one title, it can have multiple reviews.
 
-```{r violinPlotsReviewPrices, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Prices of review sentiments", fig.align='center', fig.width=8, fig.height=4}
+```{r violinPlotsReviewPrices, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Prices of review sentiments", fig.align='center', fig.width=10, fig.height=4}
 mean_price <- mean(df_listings_cleaned$price)
 # mean_price
 sd_price <- sd(df_listings_cleaned$price)
@@ -1318,7 +1320,7 @@ log_price <- ggplot(df_review_sentiments, aes(x = sentiment, y = log_price, fill
   geom_violin(trim = TRUE) +
   scale_fill_manual(values = c("negative" = "#E57373", "positive" = "#81C784", "neutral" = "#64B5F6")) +
   geom_boxplot(width = 0.1, fill = "white") +
-  labs(title = "Distribution of prices by sentiment", x = "Sentiment", y = "Price") +
+  labs(title = "Distribution of prices by sentiment", x = "Sentiment", y = "Price", fill = "Sentiment") +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5))
 
@@ -1329,7 +1331,7 @@ ci_price <- ggplot(df_filtered, aes(x = sentiment, y = price, fill = sentiment))
   geom_violin(trim = FALSE) +
   scale_fill_manual(values = c("negative" = "#E57373", "positive" = "#81C784", "neutral" = "#64B5F6")) +
   geom_boxplot(width = 0.1, fill = "white") +
-  labs(title = "Distribution of prices by sentiment", x = "Sentiment", y = "Price") +
+  labs(title = "Distribution of prices by sentiment", x = "Sentiment", y = "Price", fill = "Sentiment") +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5))
 
@@ -1345,7 +1347,7 @@ This section aims to explore how sentiments and ratings are distributed across d
 #### Sentiments
 To analyze how sentiments of reviews are distributed across different districts, we first calculate the mean sentiment for each Airbnb listing. The sentiment of a review is determined using a sentiment score, which is the difference between positive sentiment and negative sentiment. This score ranges from *-1* to *1*, where *-1* indicates very negative sentiment, 1 indicates very positive sentiment, and 0 represents a neutral sentiment or a balance between positive and negative aspects, making the text neutral overall. After that we group the Airbnbs by district and compute the district's mean sentiment.
 
-```{r neighborhoodSentiments, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Review sentiments of neighborhoods", fig.align='center', fig.width=8, fig.height=4}
+```{r neighborhoodSentiments, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Review sentiments of neighborhoods", fig.align='center', fig.width=10, fig.height=4}
 region_sentiment_scores <- df_listings_cleaned_with_review_sentiment %>%
   group_by(neighbourhood_group_cleansed) %>%
   summarize(sentiment_region_score = mean(mean_sentiment_score_for_reviews))
@@ -1373,7 +1375,6 @@ map_plot <- ggplot() +
   geom_sf_text(data = lor_combined, aes(geometry = geometry, label = BEZ_ID), size = 3, color = "black") +
   scale_fill_manual(values = unique(lor_combined$color), name = "Bezirke (ID: Name)") +
   theme_void() +
-  labs(title = "Sentiment Map of Berlin") +
   theme(legend.position = "right", plot.title = element_text(hjust = 0.5))
 
 bar_plot <- ggplot(region_sentiment_scores, aes(x = reorder(neighbourhood_group_cleansed, sentiment_region_score), 
@@ -1381,8 +1382,7 @@ bar_plot <- ggplot(region_sentiment_scores, aes(x = reorder(neighbourhood_group_
   geom_bar(stat = "identity") +
   scale_fill_identity() + 
   coord_flip() +
-  labs(title = "Sentiment Scores by Neighborhood",
-       x = "Neighborhood",
+  labs(x = "Neighborhood",
        y = "Sentiment Score") +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5))
@@ -1395,7 +1395,7 @@ We can observe that the eastern and western outer districts of Berlin have more 
 #### Sentiment compared to number of reviews
 The results from the previous chapter raised the question of whether our assumption holds true, that sentiment might be affected by the number of Airbnbs in a district. To explore this, we have plotted the number of Airbnbs per district again, as we did in the previous chapter with the sentiments.
 
-```{r neighborhoodAirbnbCount, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Number of Airbnbs of neighborhoods", fig.align='center', fig.width=8, fig.height=4}
+```{r neighborhoodAirbnbCount, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Number of Airbnbs of neighborhoods", fig.align='center', fig.width=10, fig.height=4}
 listings_per_bezirk <- df_listings_cleaned_with_review_sentiment %>%
   group_by(neighbourhood_group_cleansed) %>%
   summarize(num_listings = n()) %>%
@@ -1429,9 +1429,8 @@ lor_combined <- lor %>%
 map_plot <- ggplot() +
   geom_sf(data = lor_combined, aes(geometry = geometry, fill = label_combined)) +
   geom_sf_text(data = lor_combined, aes(geometry = geometry, label = BEZ_ID), size = 3, color = "black") +
-  scale_fill_manual(values = lor_combined$color, name = "Bezirke (ID: Name)") +
+  scale_fill_manual(values = lor_combined$color, name = "Neighborhood (ID: Name)") +
   theme_void() +
-  labs(title = "Percentage of Airbnbs by Bezirk in Berlin") +
   theme(legend.position = "right", plot.title = element_text(hjust = 0.5))
 
 bar_plot <- ggplot(region_data, aes(x = reorder(neighbourhood_group_cleansed, num_listings), 
@@ -1439,8 +1438,7 @@ bar_plot <- ggplot(region_data, aes(x = reorder(neighbourhood_group_cleansed, nu
   geom_bar(stat = "identity") +
   scale_fill_identity() + 
   coord_flip() +
-  labs(title = "Number of Airbnbs by Neighborhood",
-       x = "Neighborhood",
+  labs(x = "Neighborhood",
        y = "Number of Airbnbs") +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5))
@@ -1450,24 +1448,21 @@ grid.arrange(map_plot, bar_plot, ncol=2)
 
 When comparing this chart with the sentiment one, it is immediately apparent that there is a strong correlation between the number of Airbnbs and the sentiment. The following plot illustrates this relationship more clearly.
 
-```{r correlationCountSentiment, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Correlation Sentiment and Number of Airbnbs of neighborhoods", fig.align='center', fig.width=5, fig.height=4}
-plot_correlation <- function(data, x_var, y_var) {
-  cor_spearman <- cor(data[[x_var]], data[[y_var]], method = "spearman")
-  cor_pearson <- cor(data[[x_var]], data[[y_var]], method = "pearson")
+```{r correlationCountSentiment, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Correlation between sentiment and number of Airbnbs of neighborhoods", fig.align='center', fig.width=5, fig.height=4}
+cor_spearman <- cor(region_data[["num_listings"]], region_data[["sentiment_region_score"]], method = "spearman")
+cor_pearson <- cor(region_data[["num_listings"]], region_data[["sentiment_region_score"]], method = "pearson")
   
-  ggplot(data, aes_string(x = x_var, y = y_var)) +
-    geom_point(color = "blue") +
-    geom_smooth(method = "lm", color = "red", se = FALSE) +
-    labs(
-      title = paste0("Correlation between ", x_var, " and ", y_var, "\nPearson: ", round(cor_pearson, 2), " Spearman: ", round(cor_spearman, 2)),
-      x = paste0(x_var, "-value"),
-      y = paste0(y_var, "-value")
-    ) +
-    theme_minimal() +
-    theme(plot.title = element_text(hjust = 0.5))
-}
+ggplot(region_data, aes_string(x = "num_listings", y = "sentiment_region_score")) +
+  geom_point(color = "blue") +
+  geom_smooth(method = "lm", color = "red", se = FALSE) +
+  labs(
+    title = paste0("Pearson: ", round(cor_pearson, 2), " Spearman: ", round(cor_spearman, 2)),
+    x = paste0("Number of Airbnbs"),
+    y = paste0("Mean sentiment region score")
+  ) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
 
-plot_correlation(region_data, "num_listings", "sentiment_region_score")
 ```
 
 We observe a strong linear correlation between the number of Airbnbs and sentiment. We attribute this to the selection effect, in popular neighborhoods, the demand for properties often exceeds the availability of desirable options. As a result, people may end up booking less desirable accommodations out of necessity, which leads to negative reviews and lower sentiment.
@@ -1476,12 +1471,12 @@ We observe a strong linear correlation between the number of Airbnbs and sentime
 
 We also explored whether the average sentiment of an Airbnb affects its price differently than the rating. If there is no significant difference, using either sentiment or rating to assess price would yield the same results. In such cases, the rating might be preferred for simplicity, as it doesn't require additional processing. To examine this, we use the following two scatter plots, the left plot shows the correlation between price and rating, while the right plot displays the correlation between price and sentiment.
 
-```{r correlationPriceSentiment, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Correlation sentiment and price and rating and price", fig.align='center', fig.width=8, fig.height=4}
+```{r correlationPriceSentiment, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Correlation sentiment and price and rating and price", fig.align='center', fig.width=10, fig.height=4}
 rating_plot <- ggplot(df_listings_cleaned_with_review_sentiment, aes(x = review_scores_rating, y = price)) +
   geom_point() +
   geom_smooth(method = "lm") +
   labs(
-    title = "Price vs rating",
+    title = "Price vs Rating",
     x = "Rating",
     y = "Price"
   ) +
@@ -1493,7 +1488,7 @@ sentiment_plot <- ggplot(df_listings_cleaned_with_review_sentiment, aes(x = mean
   geom_smooth(method = "lm") +
   labs(
     title = " Price vs Review sentiment score",
-    x = "Review Sentiment Score",
+    x = "Review sentiment score",
     y = "Price"
   ) +
   theme_minimal() +
@@ -1513,7 +1508,7 @@ We can observe that both the rating and the sentiment score have a significant i
 
 Furthermore, we examined how the influence of sentiment and rating varied across different districts. To do this, we first repeated the previous general visualization for all districts.
 
-```{r correlationPriceSentimentRatingNeighborhoods, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Correlation sentiment and price and rating and price", fig.align='center', fig.width=8, fig.height=4}
+```{r correlationPriceSentimentRatingNeighborhoods, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Correlation sentiment and price and rating and price", fig.align='center', fig.width=10, fig.height=10}
 rating_plot <- ggplot(df_listings_cleaned_with_review_sentiment, aes(x = review_scores_rating, y = price)) +
   geom_point(aes(color = neighbourhood_group_cleansed), alpha = 0.6) +
   geom_smooth(method = "lm", se = FALSE, aes(color = neighbourhood_group_cleansed)) +
@@ -1525,9 +1520,9 @@ rating_plot <- ggplot(df_listings_cleaned_with_review_sentiment, aes(x = review_
   ) +
   theme_minimal() +
   theme(
+    legend.position = "none",
     plot.title = element_text(hjust = 0.5),
-    strip.text = element_text(size = 12),
-    legend.position = "bottom"
+    strip.text = element_text(size = 12)
   )
 
 # correlation between price and review sentiment
@@ -1536,24 +1531,29 @@ sentiment_plot <- ggplot(df_listings_cleaned_with_review_sentiment, aes(x =mean_
   geom_smooth(method = "lm", se = FALSE, aes(color = neighbourhood_group_cleansed)) +
   facet_wrap(~ neighbourhood_group_cleansed) + 
   labs(
-    title = "Price vs review sentiment score by neighborhood",
-    x = "Review Sentiment Score",
+    title = "Price vs Review sentiment score by neighborhood",
+    x = "Review sentiment score",
     y = "Price"
   ) +
   theme_minimal() +
   theme(
     plot.title = element_text(hjust = 0.5),
     strip.text = element_text(size = 12),
-    legend.position = "bottom" 
+    legend.position = "none"
   )
 
-grid.arrange(rating_plot, sentiment_plot, ncol=2)
+grid.arrange(rating_plot, sentiment_plot, nrow=2)
 ```
 
 We can observe that sentiment fluctuates significantly more between districts compared to the rating, which shows a relatively consistent trend across all areas. Using two ANOVA tests, we assessed the significance of the differences in sentiment and rating across the districts.
 
-```{r anovaTest, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Correlation sentiment and price and rating and price", fig.align='center'}
+The following test analyzes whether there are significant differences in the review score ratings across different neighborhood groups.
+```{r anovaTest1, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit}
 summary(aov(review_scores_rating ~ neighbourhood_group_cleansed, data=df_listings_cleaned_with_review_sentiment))
+```
+
+The following test analyzes whether there are significant differences in the mean sentiment scores for reviews across different neighborhood groups.
+```{r anovaTest2, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit}
 summary(aov(mean_sentiment_score_for_reviews ~ neighbourhood_group_cleansed, data=df_listings_cleaned_with_review_sentiment))
 ```
 
@@ -1563,7 +1563,7 @@ The tests confirm what we had already observed in our visualization, the sentime
 
 The distribution of sentiments over the years can provide us with insights into how the general situation of Airbnbs has evolved. By examining the changes in sentiments over time for individual districts, we can also determine whether some areas are thriving in terms of Airbnb activity while others are declining. Additionally, it is intriguing to see how the COVID-19 years have influenced these sentiments. The following chart displays the overall average sentiment across all districts on the left, and the sentiment trends for each individual district on the right.
 
-```{r yearSentiments, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Review sentiments of neighborhoods", fig.align='center', fig.width=8, fig.height=4}
+```{r yearSentiments, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Review sentiments of neighborhoods", fig.align='center', fig.width=7, fig.height=7}
 color_palette <- brewer.pal(n = length(unique(df_review_sentiments$neighbourhood_group_cleansed)), name = "Set3")
 df_review_sentiments$date <- as.Date(df_review_sentiments$date, format = "%Y-%m-%d")
 df_review_sentiments$year <- as.numeric(format(df_review_sentiments$date, "%Y"))
@@ -1582,8 +1582,8 @@ general_plot <- ggplot(overall_yearly_sentiment, aes(x = year, y = mean_sentimen
   scale_x_continuous(breaks = seq(min(overall_yearly_sentiment$year), 
                                   max(overall_yearly_sentiment$year), 
                                   by = 1)) + 
-  labs(title = "Mean Sentiment Score Over the Years",
-       x = "Year", y = "Mean Sentiment Score") +
+  labs(title = "Yearly trends in mean sentiment scores",
+       x = "Year", y = "Mean sentiment score") +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5))
 
@@ -1595,14 +1595,14 @@ neighborhood_plot <- ggplot() +
   scale_x_continuous(breaks = seq(min(overall_yearly_sentiment$year), 
                                   max(overall_yearly_sentiment$year), 
                                   by = 1)) + 
-  labs(title = "Mean Sentiment Score Over the Years by District",
-       x = "Year", y = "Mean Sentiment Score") +
+  labs(title = "Yearly trends in mean sentiment scores by neighborhood",
+       x = "Year", y = "Mean sentiment score") +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5),
         axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
-  scale_color_manual(values = color_palette, name = "District")
+  scale_color_manual(values = color_palette, name = "Neighborhood")
 
-grid.arrange(general_plot, neighborhood_plot, ncol=2)
+grid.arrange(general_plot, neighborhood_plot, nrow=2)
 ```
 
 We can observe that the review sentiments were very positive when the platform first launched. This could be attributed to specific promotional efforts by Airbnb aimed at increasing its popularity in Berlin. Over the following year, the sentiment score declined significantly but remained positive. Subsequently, the sentiment score was improved linearly. An exception occurred during the COVID-19 years, when the sentiment score reached an all time high. This increase is due to the temporary absence of international tourists in Germany. In the next chapter we will observe that German Reviews have higher Sentiments.
@@ -1610,7 +1610,7 @@ When examining individual districts, two notable patterns emerge. First, popular
 
 The monthly data can offer intriguing insights into whether the timing of a visit to Berlin affects user experiences. It might also reveal if there are particular times of the year when visiting Berlin is especially rewarding, based on sentiment trends. The following chart is similar to the previous one, but it uses months instead of years.
 
-```{r monthSentiments, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Review sentiments of neighborhoods", fig.align='center', fig.width=8, fig.height=4}
+```{r monthSentiments, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Review sentiments of neighborhoods", fig.align='center', fig.width=7, fig.height=7}
 df_review_sentiments$month <- as.numeric(format(df_review_sentiments$date, "%m"))
 
 monthly_sentiment_by_neighbourhood <- df_review_sentiments %>%
@@ -1626,8 +1626,8 @@ month_labels <- setNames(month.abb, 1:12)
 general_plot <- ggplot(overall_monthly_sentiment, aes(x = month, y = mean_sentiment)) +
   geom_line(group = 1) +
   geom_point() +
-  labs(title = "Mean Sentiment Score Over the Months",
-       x = "Month", y = "Mean Sentiment Score") +
+  labs(title = "Monthly trends in mean sentiment scores",
+       x = "Month", y = "Mean sentiment score") +
   scale_x_continuous(breaks = 1:12, labels = month_labels) +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5),
@@ -1638,15 +1638,15 @@ neighborhood_plot <- ggplot() +
   geom_point(data = monthly_sentiment_by_neighbourhood, aes(x = month, y = mean_sentiment, color = neighbourhood_group_cleansed, group = neighbourhood_group_cleansed), size = 1.75, alpha = 2) +
   geom_line(data = overall_monthly_sentiment, aes(x = month, y = mean_sentiment), color = "black", size = 1.2, alpha = 0.5) +
   geom_point(data = overall_monthly_sentiment, aes(x = month, y = mean_sentiment), color = "black", size = 2, alpha = 0.5) +
-  labs(title = "Mean Sentiment Score Over the Months by District",
-       x = "Month", y = "Mean Sentiment Score") +
+  labs(title = "Monthly trends in mean sentiment scores by neighborhood",
+       x = "Month", y = "Mean sentiment score") +
   scale_x_continuous(breaks = 1:12, labels = month_labels) +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5),
         axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
-  scale_color_manual(values = color_palette, name = "District")
+  scale_color_manual(values = color_palette, name = "Neighborhood")
 
-grid.arrange(general_plot, neighborhood_plot, ncol=2)
+grid.arrange(general_plot, neighborhood_plot, nrow=2)
 ```
 
 Overall, it appears that spring is a season with notably high sentiment. In contrast, summer and winter seem to be less favored. This could be because additional amenities, such as air conditioning or heating, are required during these seasons but not necessarily during spring.  
@@ -1718,21 +1718,21 @@ grid.draw(legend)
 
 The following map illustrates the percentage of reviews in each language relative to the total number of reviews for each neighborhood.
 
-```{r distributionOfLanguagesOverneighborhoods, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Sentiment count of reviews", fig.align='center', fig.width=8, fig.height=4}
+```{r distributionOfLanguagesOverneighborhoods, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Sentiment count of reviews", fig.align='center', fig.width=10, fig.height=4}
 plot_ger <- ggplot() +
   geom_sf(data = lor_combined, aes(geometry = geometry, fill = label_combined)) +
   geom_sf_text(data = lor_combined, aes(geometry = geometry, label = BEZ_ID), size = 3, color = "black") +
-  scale_fill_manual(values = lor_combined$color_german, name = "Bezirke (ID: Name)") +
+  scale_fill_manual(values = lor_combined$color_german, name = "Neighborhood (ID: Name)") +
   theme_void() +
-  labs(title = "Percentage of German Reviews") +
+  labs(title = "German reviews") +
   theme(legend.position = "right", plot.title = element_text(hjust = 0.5))
 
 plot_eng <- ggplot() +
   geom_sf(data = lor_combined, aes(geometry = geometry, fill = label_combined)) +
   geom_sf_text(data = lor_combined, aes(geometry = geometry, label = BEZ_ID), size = 3, color = "black") +
-  scale_fill_manual(values = lor_combined$color_english, name = "Bezirke (ID: Name)") +
+  scale_fill_manual(values = lor_combined$color_english, name = "Neighborhood (ID: Name)") +
   theme_void() +
-  labs(title = "Percentage of English Reviews") +
+  labs(title = "English reviews") +
   theme(legend.position = "right", plot.title = element_text(hjust = 0.5))
 
 grid.arrange(plot_ger, plot_eng, ncol=2)
@@ -1756,9 +1756,9 @@ df_percentage <- df_review_sentiments %>%
 ggplot(df_percentage, aes(x = language, y = percentage, fill = sentiment)) +
   geom_bar(stat = "identity", position = "dodge", color="black") +
   scale_fill_manual(values = c("negative" = "#E57373", "positive" = "#81C784", "neutral" = "#64B5F6")) +
-  labs(title = "Percentage of Sentiments by Language",
-       x = "Language",
-       y = "Percentage") +
+  labs(x = "Language",
+       y = "Percentage",
+       fill = "Sentiment") +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5))
 ```

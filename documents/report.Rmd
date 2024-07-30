@@ -465,13 +465,9 @@ sim_reputation_only_model %>%
     )) +
   geom_violin() +
   geom_boxplot(width = 0.2, fill = "white") +
-  scale_fill_discrete(name = "Bezirk") +
-  ylab("Bezirk") +
-  xlab("log(price)") +
-  theme(
-    legend.position = "bottom",
-    legend.title.position = "top"
-  )
+  scale_fill_discrete(guide="none") +
+  ylab(NULL) +
+  xlab("log(price)")
 ```
 
 ## Dicussion of exemplary backdoor paths

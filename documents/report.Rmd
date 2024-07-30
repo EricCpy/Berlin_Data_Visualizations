@@ -465,7 +465,7 @@ sim_reputation_only_model %>%
     )) +
   geom_violin() +
   geom_boxplot(width = 0.2, fill = "white") +
-  scale_fill_manual(name = "Bezirk") +
+  scale_fill_discrete(name = "Bezirk") +
   ylab("Bezirk") +
   xlab("log(price)") +
   theme(

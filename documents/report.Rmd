@@ -1099,6 +1099,8 @@ In Figure \@ref(fig:comparing-median-prices) on can see the median prices for Ai
 Regarding the prediction for *Spandau* one should have a second look at Table \@ref(tab:airbnb-price-by-bezirk-table) and Figure \@ref(fig:base-model-rep-wol-parameter). Since the dataset has very few information about Airbnbs in *Spandau* (as for *Lichtenber* and *Marzahn-Hellersdorf*) it is pretty uncertain about the corresponding parameter. This uncertainty is not reflected in Figure \@ref(fig:comparing-median-prices). In fact this is a crucial point Bayesian statisticians emphasise often: **The result is the whole distribution. At least the point estimator and the width of an credibility interval.** Just presenting a point estimate can be misleading in decisions. But simple point estimates seem to be the kind of answers people want to get. But life is not simple - it is complex and full of uncertainty.
 
 ```{r comparing-median-prices, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Comparing the shift of median prices for Airbnbs found in the raw data with predictions from the full model.", fig.align='center', fig.dim = c(6, 6)}
+ggtheme <- theme_get()
+
 df_temp <- full_model_post %>%
   pivot_wider(names_from = "wohnlage", values_from = "delta", names_prefix = "wol_") %>% 
   rowwise() %>% 
@@ -1161,6 +1163,8 @@ CGPfunctions::newggslopegraph(
 ```
 
 ```{r comparing-median-prices-half-eye, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Comparing the ranking among median prices for Airbnbs found in the raw data with predictions from the full model with half-eye plots.", fig.align='center', fig.dim = c(8, 6)}
+theme_set(ggtheme)
+
 df_temp2 <- full_model_post %>%
   pivot_wider(names_from = "wohnlage", values_from = "delta", names_prefix = "wol_") %>% 
   rowwise() %>% 

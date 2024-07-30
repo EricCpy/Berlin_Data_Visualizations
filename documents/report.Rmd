@@ -132,14 +132,14 @@ Overall, it's clear that there are many more possibilities for visualization, bu
 
 ## Objectives
 
-1. **Number of Airbnbs by District & Data Overview** (Florian)
+1. **Number of Airbnbs by District & Data Overview** (Florian/Eric)
 2. **Effect of Airbnb Quantity on Pricing & Data Overview** (Pavlo)
 3. **Impact of Bezirk Reputation on Pricing** (Simon)
 4. **Influence of Additional Data on Airbnb Pricing & Overview** (Simon)
 5. **Analysis of Pricing in Relation to Amenities and Attributes** (Simon)
 6. **Sentiment Analysis of Reviews and Titles; Correlation with price and neighborhood** (Eric)
 
-## Airbnb map **TODO remove?**
+## Airbnb map **TODO remove or change?**
 
 ```{r airbnb-map-ggplot, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Map with ggplot", fig.align='center'}
 geo_elect_units %>% 
@@ -195,40 +195,6 @@ plot_ly() %>%
       yanchor='bottom',
       orientation='h'
     )
-  )
-```
-
-# test **TODO remove?**
-
-Schenbar nur eine plotly Karte pr Kapitel :(
-
-```{r airbnb-map-plotly-prices, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Interactive map with plotly with OPNV info showing log prices.", fig.align='center', fig.dim = c(8, 8)}
-plot_ly() %>% 
-  add_sf(
-    data = geo_bezirk,
-    span = I(0.5),
-    hoverinfo='skip'
-  ) %>% 
-  add_sf(
-    data = opnv_rails_no_tram_berlin,
-    name = 'Rail',
-    hoverinfo='skip'
-  ) %>% 
-  add_sf(
-    data = opnv_stations_no_tram_berlin,
-    name = 'Station',
-    hoverinfo='skip',
-    color = I("red")
-  ) %>% 
-  add_markers(
-    data = df_airbnb,
-    x = ~longitude,
-    y = ~latitude,
-    color = ~log(price),
-    text = ~str_c(price, " €"),
-    hoverinfo='text',
-    alpha = 0.3,
-    name = 'Airbnb'
   )
 ```
 
@@ -1991,8 +1957,9 @@ ggplot(df_percentage, aes(x = language, y = percentage, fill = sentiment)) +
 We observed that German reviews are predominantly positive, while English reviews are mostly neutral. Additionally, the sentiment distribution among German reviewers aligns more closely with our general expectations compared to the overall review sentiment overview. Germans tend to rate an Airbnb as either positive or negative, with very few neutral reviews. In contrast, English reviews are generally neutral, with very few negative reviews and occasional positive ones. It's also worth noting that the German and English reviews were analyzed using different sentiment analysis tools, which may have introduced biases towards positive or neutral sentiments. 
 
 # Conclusion
-TODO
+TODO **add Simon part Conclusion**
 
+In conclusion, our analysis of Airbnb reviews and titles in English and German reveals that while positive sentiment can marginally increase listing prices, its impact is relatively minor compared to other factors such as images and amenities. Reviews tend to be mostly positive or neutral, with negative reviews often linked to higher priced listings, which is potentially due to higher expectations or selection bias. Sentiment also varies across districts, with central areas showing more negative reviews. Additionally, German reviews show more extreme sentiments, both positive and negative, compared to the generally neutral tone of English reviews. These findings underscore the influence of sentiment in Airbnb reviews and titles.
 
 # References
 

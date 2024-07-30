@@ -88,7 +88,7 @@ ggplot(raw) +
   labs(title = "Number of Airbnbs by Bezirk in Berlin",
        fill = "Number of Airbnbs")
 
-#proportion of airbnbs by bezirk
+#map proportion of airbnbs by bezirk
 ggplot(raw) +
   geom_sf(aes(fill = proportion), color = "black", size = 0.2) +  # Smaller internal borders
   geom_sf(data = borough_borders, fill = NA, color = "black", size = 1) +  # Larger borders for main boroughs
@@ -96,6 +96,15 @@ ggplot(raw) +
   theme_void() +
   labs(title = "Proportion of Airbnbs by Bezirk in Berlin",
        fill = "Proportion of Airbnbs")
+
+#barplot of proportion of airbnbs by bezirk
+ggplot(airbnb_count, aes(x = reorder(BEZ_NAME, proportion), y = proportion)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  coord_flip() +
+  labs(title = "Proportion of Airbnbs by Bezirk in Berlin",
+       x = "Bezirk",
+       y = "Proportion of Airbnbs") +
+  theme_minimal()
 
 #barplot of number of airbnbs by bezirk
 ggplot(airbnb_count, aes(x = reorder(BEZ_NAME, n), y = n)) +

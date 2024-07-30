@@ -2267,9 +2267,6 @@ full_model_verbose_post_summary <- readRDS("saved_objects/full_model_verbose_pos
   mutate("total effect" = parameter %in% direct_effect_only)
 
 full_model_verbose_post %>% 
-  pivot_longer(full_model_verbose_post_summary$parameter)
-
-full_model_verbose_post %>% 
   pivot_wider(names_from = "wohnlage", values_from = "delta", names_prefix = "wol_") %>% 
   mutate(
     log_price_wol_1 = reputation+bE*(wol_1)+bPropType,
@@ -2279,12 +2276,13 @@ full_model_verbose_post %>%
   mutate(bezirk = bezirk_levels[bezirk], property_type = property_type_levels[property_type]) %>% 
   pivot_longer(full_model_verbose_post_summary$parameter) %>% 
   sample_frac(0.01) %>% 
-  # filter(name == "bSauna") %>% 
-  mutate(price_diff = exp(log_price+value)-exp(log_price)) %>% 
+  filter(name == "bSauna") %>% 
+  rowwise() %>% 
+  mutate(price_diff = exp(rnorm(1, log_price+value, sigma))-exp(rnorm(1, log_price, sigma))) %>% 
   group_by(name) %>% 
   mutate(perc = str_c(round(100*mean(price_diff>0), 2), " %"), .before = 1) %>% 
-  ggplot(aes(x = price_diff, group = name)) +
-  geom_density() +
+  ggplot(aes(x = price_diff, fill = property_type)) +
+  geom_density(alpha = .5) +
   geom_text(aes(x = 10, 0.05, label = perc)) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   # scale_fill_manual(values = c("gray80", "skyblue")) +

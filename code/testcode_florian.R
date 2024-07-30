@@ -4,6 +4,11 @@ airbnb_count <- df_listings_cleaned %>%
   count(neighbourhood_group_cleansed, sort = TRUE) %>% 
   rename(BEZ_NAME = neighbourhood_group_cleansed)
 
+total_airbnbs <- sum(airbnb_count$n)
+
+airbnb_count <- airbnb_count %>%
+  mutate(proportion = n / total_airbnbs)
+
 raw <- sf::st_read(dsn = "data/lor/Planung/lor_plr.shp") %>% 
   st_make_valid() %>% 
   st_transform(4326) %>% 
@@ -83,6 +88,24 @@ ggplot(raw) +
   labs(title = "Number of Airbnbs by Bezirk in Berlin",
        fill = "Number of Airbnbs")
 
+#map proportion of airbnbs by bezirk
+ggplot(raw) +
+  geom_sf(aes(fill = proportion), color = "black", size = 0.2) +  # Smaller internal borders
+  geom_sf(data = borough_borders, fill = NA, color = "black", size = 1) +  # Larger borders for main boroughs
+  scale_fill_gradient(low = "lightyellow", high = "darkred", name = "Proportion of Airbnbs") +
+  theme_void() +
+  labs(title = "Proportion of Airbnbs by Bezirk in Berlin",
+       fill = "Proportion of Airbnbs")
+
+#barplot of proportion of airbnbs by bezirk
+ggplot(airbnb_count, aes(x = reorder(BEZ_NAME, proportion), y = proportion)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  coord_flip() +
+  labs(title = "Proportion of Airbnbs by Bezirk in Berlin",
+       x = "Bezirk",
+       y = "Proportion of Airbnbs") +
+  theme_minimal()
+
 #barplot of number of airbnbs by bezirk
 ggplot(airbnb_count, aes(x = reorder(BEZ_NAME, n), y = n)) +
   geom_bar(stat = "identity", fill = "skyblue") +
@@ -127,3 +150,4 @@ ggplot(availability_rate, aes(x = reorder(neighbourhood_group_cleansed, avg_avai
   labs(title = "Average Availability Rate by Bezirk",
        x = "Bezirk",
        y = "Average Availability Rate (days)")
+

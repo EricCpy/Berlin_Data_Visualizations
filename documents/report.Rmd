@@ -63,10 +63,13 @@ geo_elect_units %>%
   theme_bw() +
   theme(
     legend.position = "bottom"
+  )+
+  scale_fill_manual(
+    values = bezirk_colors
   )
 ```
 
-```{r airbnb-map-plotly, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Interactive map with plotly with OPNV info", fig.align='center', fig.dim = c(8, 8)}
+```{r airbnb-map-plotly, echo=FALSE, message=FALSE, warning=FALSE, cache=full_refit, fig.cap="Interactive map with plotly with OPNV info", fig.align='center', fig.dim = c(8, 8)}
 plot_ly() %>% 
   add_sf(
     data = geo_bezirk, color = ~BEZ_NAME, 
@@ -177,7 +180,7 @@ df_airbnb %>% rename(Bezirk = neighbourhood_group_cleansed) %>%
 
 Figure \@ref(fig:airbnb-price-by-bezirk) shows the price for a night at Airbnbs per *Bezirk*. As was already pointed out the prices have a long tail towards higher prices. For the 25 % quantile for *Mitte* we find a value of `r q25_mitte` and for the 75 % quantile for Reinickendorf a value of `r q75_reinickendorf`. Thus for those two extreme *Bezirke* the boxes show almost no overlap. Comparing any other pair we find the boxes overlap more.
 
-```{r airbnb-price-by-bezirk, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Showing the distribution of the price per Bezirk. Dashed line shows the 25 % quantile for Mitte and the 75 % quantile for Reinickendorf which are very close.", fig.align='center', fig.dim = c(8, 6)}
+```{r airbnb-price-by-bezirk, echo=FALSE, message=FALSE, warning=FALSE, cache=full_refit, fig.cap="Showing the distribution of the price per Bezirk. Dashed line shows the 25 % quantile for Mitte and the 75 % quantile for Reinickendorf which are very close.", fig.align='center', fig.dim = c(8, 6)}
 df_airbnb %>% ggplot(
   aes(
     y = neighbourhood_group_cleansed, 
@@ -1015,6 +1018,8 @@ In Figure \@ref(fig:comparing-median-prices) on can see the median prices for Ai
 1. Lichtenberg
 1. Marzahn-Hellersdorf, Reinickendorf
 
+Regarding the prediction for *Spandau* one should have a second look at Table \@ref(tab:airbnb-price-by-bezirk-table) and Figure \@ref(fig:base-model-rep-wol-parameter). Since the dataset has very few information about Airbnbs in *Spandau* (as for *Lichtenber* and *Marzahn-Hellersdorf*) it is pretty uncertain about the corresponding parameter. This uncertainty is not reflected in Figure \@ref(fig:comparing-median-prices). In fact this is a crucial point Bayesian statisticians emphasise often: **The result is the whole distribution. At least the point estimator and the width of an credibility interval.** Just presenting a point estimate can be misleading in decisions. But simple point estimates seem to be the kind of answers people want to get. But life is not simple - it is complex and full of uncertainty.
+
 ```{r comparing-median-prices, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Comparing the median prices for Airbnbs found in the raw data with predictions from the full model.", fig.align='center', fig.dim = c(6, 6)}
 df_temp <- full_model_post %>%
   pivot_wider(names_from = "wohnlage", values_from = "delta", names_prefix = "wol_") %>% 
@@ -1025,12 +1030,12 @@ df_temp <- full_model_post %>%
     price_wol_3 = exp(rnorm(1, reputation+bE*(wol_1+wol_2+wol_3)+bPT, sigma))
   ) %>% pivot_longer(cols = starts_with("price_"), values_to = "price", names_prefix = "price_wol_", names_to = "wohnlage") %>% 
   mutate(bezirk = bezirk_levels[bezirk], property_type = property_type_levels[property_type]) %>% 
-  group_by(bezirk) %>% summarise(median_price = median(price)) %>% 
+  group_by(bezirk) %>% summarise(median_price = median(price), sd_price = sd(price)) %>% 
   arrange(median_price) %>% rowid_to_column() %>% 
   mutate(type = "full model") %>% 
   bind_rows(
     df_airbnb %>% group_by(neighbourhood_group_cleansed) %>%
-      summarise(median_price = median(price)) %>% 
+      summarise(median_price = median(price), sd_price = sd(price)) %>% 
       arrange(median_price) %>% rowid_to_column() %>% 
       mutate(type = "raw data") %>% rename(bezirk = neighbourhood_group_cleansed)
   ) %>% mutate(
@@ -1049,6 +1054,128 @@ CGPfunctions::newggslopegraph(
   ThemeChoice = "gdocs",
   LineColor = bezirk_colors
   )
+```
+
+To be fair: It seems not easy to communicate the uncertainty at the same time as displaying a shift in rankings. In Figure \@ref(ref:comparing-median-prices-uncertainty-circles) the uncertainty is reflected by the diameter of the added circles. For the raw data the number of data points per *Bezirk* has been normalized and multiplied by `-1`. Thus a small diameter represent a high count of data for a given *Bezirk*. For the predictions of the full model the standard deviations of the predicted prices grouped by *Bezirk* were scaled. Thus a big diameter represents a wide distribution for the predictions. The diameter size must not be compared across the two columns. They are just representive among each column.
+
+This approach is not as clear as we wish because the size of circles is hard to distinguish and the circles are overlapping. Anyway, this approach seems to be better than comparing half-eye distributions or boxplots because one can more easily identify the shift of the median prices. Especially the \@ref(fig:comparing-median-prices-half-eye)
+
+```{r comparing-median-prices-uncertainty-circles, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Comparing the median prices for Airbnbs found in the raw data with predictions from the full model. The circles diameter corresponds to the uncertainty of a value.", fig.align='center', fig.dim = c(6, 6)}
+df_temp3 <- df_airbnb %>% rename(Bezirk = neighbourhood_group_cleansed) %>% 
+  group_by(Bezirk) %>% 
+  summarise("mean price" = mean(price), "median price" = median(price), "#Airbnbs" = n()) %>% 
+  mutate(size = -scale(`#Airbnbs`)) %>% rename(bezirk = Bezirk)
+
+CGPfunctions::newggslopegraph(
+  dataframe = df_temp,
+  Times = type,
+  Measurement = median_price,
+  Grouping = bezirk,
+  Title = NULL,
+  SubTitle = NULL,
+  Caption = NULL,
+  ThemeChoice = "gdocs",
+  LineColor = bezirk_colors
+  ) +
+  geom_point(data = df_temp %>% filter(type == "full model") %>% mutate(size = scale(sd_price)), aes(size = size, color = bezirk), shape = 1) +
+  geom_point(data = df_temp3, aes(size = size, color = bezirk, fill = bezirk, y = `median price`, x = "raw data"), shape = 1) +
+  scale_size_continuous(range = c(7, 14))
+```
+
+```{r comparing-median-prices-half-eye, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Comparing the median prices for Airbnbs found in the raw data with predictions from the full model with half-eye plots.", fig.align='center', fig.dim = c(8, 6)}
+df_temp2 <- full_model_post %>%
+  pivot_wider(names_from = "wohnlage", values_from = "delta", names_prefix = "wol_") %>% 
+  rowwise() %>% 
+  mutate(
+    price_wol_1 = exp(rnorm(1, reputation+bE*(wol_1)+bPT, sigma)),
+    price_wol_2 = exp(rnorm(1, reputation+bE*(wol_1+wol_2)+bPT, sigma)),
+    price_wol_3 = exp(rnorm(1, reputation+bE*(wol_1+wol_2+wol_3)+bPT, sigma))
+  ) %>% pivot_longer(cols = starts_with("price_"), values_to = "price", names_prefix = "price_wol_", names_to = "wohnlage") %>% 
+  mutate(bezirk = bezirk_levels[bezirk], property_type = property_type_levels[property_type]) %>% 
+  select(bezirk, price) %>% mutate(type = "full model") %>% 
+  group_by(bezirk) %>% 
+  mutate(median_price = median(price)) %>% 
+  ungroup() %>% mutate(bezirk = fct_reorder(bezirk, median_price))
+
+gg1 <- df_temp2 %>% 
+  ggplot(aes(y = bezirk, x = price, fill = bezirk)) +
+  stat_halfeye() +
+  # stat_halfeye(data = df_airbnb %>% rename(bezirk = neighbourhood_group_cleansed) %>% mutate(type = "raw data"), aes(y = bezirk, x = price, fill = bezirk)) +
+  coord_cartesian(xlim = c(0, 200)) +
+  scale_fill_manual(
+    values = bezirk_colors
+  ) +
+  facet_wrap(~type) +
+  theme(
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title.position = "top",
+    panel.grid = element_blank(),
+    panel.border = element_blank(),
+    plot.margin = unit(c(0, 0, 0, 0), "null"),
+    panel.margin = unit(c(0, 0, 0, 0), "null")
+  ) +
+  ylab(NULL) +
+  scale_y_discrete(position = "right")
+
+gg2 <- df_airbnb %>% 
+  group_by(neighbourhood_group_cleansed) %>% mutate(median_price = median(price)) %>% 
+  ungroup() %>% 
+  mutate(bezirk = fct_reorder(neighbourhood_group_cleansed, median_price)) %>% 
+  mutate(type = "raw data") %>% 
+  ggplot(aes(y = bezirk, x = price, fill = bezirk)) +
+  # stat_halfeye(data = df_temp2 %>% ungroup() %>% mutate(bezirk = fct_reorder(bezirk, median_price)), aes(y = bezirk, x = price, fill = bezirk)) +
+  stat_halfeye() +
+  coord_cartesian(xlim = c(0, 200)) +
+  scale_fill_manual(
+    values = bezirk_colors
+  ) +
+  facet_wrap(~type) +
+  theme(
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title.position = "top",
+    panel.grid = element_blank(),
+    panel.border = element_blank(),
+    plot.margin = unit(c(0, 0, 0, 0), "null"),
+    panel.margin = unit(c(0, 0, 0, 0), "null")
+  ) +
+  ylab(NULL)
+
+gg3 <- df_airbnb %>% 
+  group_by(neighbourhood_group_cleansed) %>% mutate(median_price = median(price)) %>% 
+  ungroup() %>% 
+  mutate(bezirk = fct_reorder(neighbourhood_group_cleansed, median_price)) %>% 
+  pull(bezirk) %>% levels() %>% data.frame(bezirk = ., rank = 1:12) %>% 
+  mutate(type = "raw data") %>% bind_rows(
+    df_temp2 %>% ungroup() %>% mutate(bezirk = fct_reorder(bezirk, median_price)) %>% 
+      pull(bezirk) %>% levels() %>% data.frame(bezirk = ., rank = 1:12) %>% 
+      mutate(type = "full model")
+  ) %>% 
+  mutate(rank = ordered(rank)) %>% 
+  ungroup() %>% as_tibble() %>% 
+  ggplot(aes(color = bezirk, x = type, y = rank, group = bezirk)) +
+  geom_line(size = 2,
+            alpha = 0.5) +
+  geom_point(size = 3) +
+  scale_color_manual(
+    values = bezirk_colors,
+    guide = "none"
+  ) +
+  theme_void() +
+  scale_x_discrete(limits=rev) +
+  coord_cartesian(ylim = c(-.5,13.5)) +
+  theme(
+    panel.grid = element_blank(),
+    panel.border = element_blank(),
+    plot.margin = unit(c(0, 0, 0, 0), "null"),
+    panel.margin = unit(c(0, 0, 0, 0), "null")
+  )
+
+ggpubr::ggarrange(
+  gg2, gg3, gg1, 
+  common.legend = TRUE, legend = "bottom", 
+  nrow = 1, widths = c(1, 0.5, 1))
 ```
 
 ### Alternative interpretations
@@ -1123,66 +1250,66 @@ The mean of the parameter estimation as well as indicators of their distribution
 The model is often pretty sure that the mean price for an Airbnb with a selected amenity (or with an increased value by one standard deviation for a numeric predictor) is higher (or lower). Nevertheless, the model is much less certein that prices actually found in reality will be higher (or lower) for most Airbnbs. E.g. the model is 100 % certain that an Airbnb with balcony is in general (mean) more expensive than one without. But it predicts only a 55 % probability that for a given pair of Airbnbs the one with a a balcony is more expensive than one without. For an Airbnb where a number of accommodates is one standard deviation higher than for the population mean the model is 100 % certain that the mean price is higher. For an actual pair it predicts 64 % probability that the Airbnb with space for more accommodates ist more expensive.
 
 ```{r interactive-contrasts, echo=FALSE, message=FALSE, warning=FALSE, cache=FALSE, results="asis"}
-cat(
-  "<table>", 
-  paste0("<caption>",
-         "(#tab:full-model-parameter-summary)",
-         "Summary of parameter estimations of the full model. If total effect equals <em>false</em> the parameter can only be interpreted as direct causal effect.",
-         "</caption>"),
-  "</table>", 
-  sep ="\n"
-  )
-
-# set up a group of SharedData objects
-shared_demo <- SharedData$new(
-  full_model_verbose_post_summary, 
-  key = ~parameter, group = "shared_obj"
-  )
-shared_trt <- SharedData$new(
-  full_model_verbose_post_long %>% rename(parameter = name), 
-  key = ~parameter, group = "shared_obj")
-shared_trt2 <- SharedData$new(
-  full_model_verbose_post_long_pred %>% rename(parameter = name), 
-  key = ~parameter, group = "shared_obj")
-
-datatable(
-  shared_demo,
-  selection = 'single'
-  ) %>% 
-  formatSignif(
-    columns = 2:5,
-    digits = 2
-  )
+# cat(
+#   "<table>", 
+#   paste0("<caption>",
+#          "(#tab:full-model-parameter-summary)",
+#          "Summary of parameter estimations of the full model. If total effect equals <em>false</em> the parameter can only be interpreted as direct causal effect.",
+#          "</caption>"),
+#   "</table>", 
+#   sep ="\n"
+#   )
+# 
+# # set up a group of SharedData objects
+# shared_demo <- SharedData$new(
+#   full_model_verbose_post_summary, 
+#   key = ~parameter, group = "shared_obj"
+#   )
+# shared_trt <- SharedData$new(
+#   full_model_verbose_post_long %>% rename(parameter = name), 
+#   key = ~parameter, group = "shared_obj")
+# shared_trt2 <- SharedData$new(
+#   full_model_verbose_post_long_pred %>% rename(parameter = name), 
+#   key = ~parameter, group = "shared_obj")
+# 
+# datatable(
+#   shared_demo,
+#   selection = 'single'
+#   ) %>% 
+#   formatSignif(
+#     columns = 2:5,
+#     digits = 2
+#   )
 ```
 
 ```{r full-model-parameter-contrasts-interactive, echo=FALSE, message=FALSE, warning=FALSE, cache=FALSE, fig.cap="Contrasts of parameter estimations. The percentage indicates the probability to find an Airbnb with the chosen characteristic that is more expensive than an Airbnb without the characteristic.", fig.align='center', fig.dim = c(8, 3)}
-gg_param <- shared_trt %>% 
-  ggplot(aes(x = price_diff, group = parameter)) +
-  geom_density(fill = "skyblue") +
-  geom_text(aes(x = 20, 0.2, label = perc, group = parameter), hjust=0.5, vjust=0.5) +
-  geom_vline(xintercept = 0, linetype = "dashed") +
-  labs(x="difference of mean price in €", y=NULL) +
-  theme(
-    legend.position = "bottom"
-  ) +
-  coord_cartesian(xlim = c(-25, 25))
-
-ggplotly(gg_param)
+# gg_param <- shared_trt %>% 
+#   ggplot(aes(x = price_diff, group = parameter)) +
+#   geom_density(fill = "skyblue") +
+#   geom_text(aes(x = 20, 0.2, label = perc, group = parameter), hjust=0.5, vjust=0.5) +
+#   geom_vline(xintercept = 0, linetype = "dashed") +
+#   labs(x="difference of mean price in €", y=NULL) +
+#   theme(
+#     legend.position = "bottom"
+#   ) +
+#   coord_cartesian(xlim = c(-25, 25))
+# 
+# ggplotly(gg_param)
 ```
 
 ```{r full-model-pred-contrasts-interactive, echo=FALSE, message=FALSE, warning=FALSE, cache=FALSE, fig.cap="Contrasts of posterior predicted prices. The percentage indicates the probability to find an Airbnb with the chosen characteristic that is more expensive than an Airbnb without the characteristic.", fig.align='center', fig.dim = c(8, 3)}
-gg_pred <- shared_trt2 %>% 
-  ggplot(aes(x = price_diff, group = parameter)) +
-  geom_density(fill = "skyblue") +
-  geom_text(aes(x = 200, 0.005, label = perc, group = parameter), hjust=0.5, vjust=0.5) +
-  geom_vline(xintercept = 0, linetype = "dashed") +
-  labs(x="difference of mean price in €", y=NULL) +
-  theme(
-    legend.position = "bottom"
-  ) +
-  coord_cartesian(xlim = c(-250, 250))
-
-ggplotly(gg_pred)
+# gg_pred <- shared_trt2 %>% 
+#   ggplot(aes(x = price_diff, group = parameter)) +
+#   geom_density(fill = "skyblue") +
+#   geom_text(aes(x = 200, 0.005, label = perc, group = parameter), hjust=0.5, vjust=0.5) +
+#   geom_vline(xintercept = 0, linetype = "dashed") +
+#   labs(x="difference of mean price in €", y=NULL) +
+#   theme(
+#     legend.position = "bottom"
+#   ) +
+#   coord_cartesian(xlim = c(-250, 250))
+# 
+# ggplotly(gg_pred)
 ```
 
 # Sentiment analysis

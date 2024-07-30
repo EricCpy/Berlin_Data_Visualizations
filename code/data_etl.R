@@ -338,18 +338,18 @@ direct_effect_only <- c(
 # ---- VISUALS ----
 
 bezirk_colors <- c(
-  "#a6cee3",
-  "#1f78b4",
-  "#b2df8a",
-  "#33a02c",
-  "#fb9a99",
-  "#e31a1c",
-  "#fdbf6f",
-  "#ff7f00",
-  "#cab2d6",
-  "#6a3d9a",
-  "#ffff99",
-  "#b15928"
+  "Charlottenburg-Wilmersdorf" = "#a6cee3",
+  "Friedrichshain-Kreuzberg" = "#1f78b4",
+  "Lichtenberg" = "#b2df8a",
+  "Marzahn-Hellersdorf" = "#33a02c",
+  "Mitte" = "#fb9a99",
+  "Neukölln" = "#e31a1c",
+  "Pankow" = "#fdbf6f",
+  "Reinickendorf" = "#ff7f00",
+  "Spandau" = "#cab2d6",
+  "Steglitz-Zehlendorf" = "#6a3d9a",
+  "Tempelhof-Schöneberg" = "#ffff99",
+  "Treptow-Köpenick" = "#b15928"
 )
 
 # ---- DAGs ----

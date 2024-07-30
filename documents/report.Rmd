@@ -69,7 +69,7 @@ geo_elect_units %>%
   )
 ```
 
-```{r airbnb-map-plotly, echo=FALSE, message=FALSE, warning=FALSE, cache=full_refit, fig.cap="Interactive map with plotly with OPNV info", fig.align='center', fig.dim = c(8, 8)}
+```{r airbnb-map-plotly, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Interactive map with plotly with OPNV info", fig.align='center', fig.dim = c(8, 8)}
 plot_ly() %>% 
   add_sf(
     data = geo_bezirk, color = ~BEZ_NAME, 
@@ -181,7 +181,7 @@ df_airbnb %>% rename(Bezirk = neighbourhood_group_cleansed) %>%
 
 Figure \@ref(fig:airbnb-price-by-bezirk) shows the price for a night at Airbnbs per *Bezirk*. As was already pointed out the prices have a long tail towards higher prices. For the 25 % quantile for *Mitte* we find a value of `r q25_mitte` and for the 75 % quantile for Reinickendorf a value of `r q75_reinickendorf`. Thus for those two extreme *Bezirke* the boxes show almost no overlap. Comparing any other pair we find the boxes overlap more.
 
-```{r airbnb-price-by-bezirk, echo=FALSE, message=FALSE, warning=FALSE, cache=full_refit, fig.cap="Showing the distribution of the price per Bezirk. Dashed line shows the 25 % quantile for Mitte and the 75 % quantile for Reinickendorf which are very close.", fig.align='center', fig.dim = c(8, 6)}
+```{r airbnb-price-by-bezirk, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Showing the distribution of the price per Bezirk. Dashed line shows the 25 % quantile for Mitte and the 75 % quantile for Reinickendorf which are very close.", fig.align='center', fig.dim = c(8, 6)}
 df_airbnb %>% ggplot(
   aes(
     y = neighbourhood_group_cleansed, 
@@ -342,18 +342,18 @@ dag <- dagify(
 ) %>% tidy_dagitty()
 
 (ggdag_status(dag, use_labels = "label", text = FALSE) + 
-  scale_fill_manual(
-  labels = c("exposure", "outcome", "latent"), 
-  values = c("#e41a1c", "#377eb8", "#4daf4a")
-  ) +
-  scale_color_manual(
-  labels = c("exposure", "outcome", "latent"), 
-  values = c("#e41a1c", "#377eb8", "#4daf4a")
-  ) +
-  theme_dag() +
-  theme(
-    legend.position = "bottom"
-  )) %>% plot_arrows_on_top()
+    scale_fill_manual(
+      labels = c("exposure", "latent", "outcome"), 
+      values = c("#e41a1c", "#4daf4a", "#377eb8")
+    ) +
+    scale_color_manual(
+      labels = c("exposure", "latent", "outcome"), 
+      values = c("#e41a1c", "#4daf4a", "#377eb8")
+    ) +
+    theme_dag() +
+    theme(
+      legend.position = "bottom"
+    )) %>% plot_arrows_on_top()
 ```
 
 A corresponding statistical representation can be seen in Equation \@ref(eq:reputation-model). The simulated distribution of log prices can be seen in Figure \@ref(fig:price-distribution-simulated-reputation). The simulated distributions are spread out wider than for real data (see Figure \@ref(fig:airbnb-logprice-by-bezirk)) so that there are multiple pairs of districts where the boxes do not overlap. Thus one can assume the effect of *Bezirk* reputation be smaller than assumed in this priors.
@@ -379,7 +379,7 @@ sim_reputation_only_model %>%
     )) +
   geom_violin() +
   geom_boxplot(width = 0.2, fill = "white") +
-  scale_fill_manual(values = bezirk_colors, name = "Bezirk") +
+  scale_fill_manual(name = "Bezirk") +
   ylab("Bezirk") +
   xlab("log(price)") +
   theme(
@@ -1059,7 +1059,7 @@ CGPfunctions::newggslopegraph(
 
 To be fair: It seems not easy to communicate the uncertainty at the same time as displaying a shift in rankings. In Figure \@ref(ref:comparing-median-prices-uncertainty-circles) the uncertainty is reflected by the diameter of the added circles. For the raw data the number of data points per *Bezirk* has been normalized and multiplied by `-1`. Thus a small diameter represent a high count of data for a given *Bezirk*. For the predictions of the full model the standard deviations of the predicted prices grouped by *Bezirk* were scaled. Thus a big diameter represents a wide distribution for the predictions. The diameter size must not be compared across the two columns. They are just representive among each column.
 
-This approach is not as clear as we wish because the size of circles is hard to distinguish and the circles are overlapping. Anyway, this approach seems to be better than comparing half-eye distributions or boxplots because one can more easily identify the shift of the median prices. Especially the \@ref(fig:comparing-median-prices-half-eye)
+This approach is not as clear as on might wish for because the size of circles is hard to distinguish and the circles are overlapping. Anyway, this approach seems to be better than comparing half-eye distributions or boxplots because one can more easily identify the shift of the median prices. But combining two half-eye plots and an line plot also make the reordering of the ranking clear (see \@ref(fig:comparing-median-prices-half-eye)). This might be more suitable when the shape of the predicted distributions become more variable.
 
 ```{r comparing-median-prices-uncertainty-circles, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Comparing the shift of median prices for Airbnbs found in the raw data with predictions from the full model. The circles diameter corresponds to the uncertainty of a value.", fig.align='center', fig.dim = c(6, 6)}
 df_temp3 <- df_airbnb %>% rename(Bezirk = neighbourhood_group_cleansed) %>% 

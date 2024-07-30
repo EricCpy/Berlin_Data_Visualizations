@@ -1020,7 +1020,7 @@ In Figure \@ref(fig:comparing-median-prices) on can see the median prices for Ai
 
 Regarding the prediction for *Spandau* one should have a second look at Table \@ref(tab:airbnb-price-by-bezirk-table) and Figure \@ref(fig:base-model-rep-wol-parameter). Since the dataset has very few information about Airbnbs in *Spandau* (as for *Lichtenber* and *Marzahn-Hellersdorf*) it is pretty uncertain about the corresponding parameter. This uncertainty is not reflected in Figure \@ref(fig:comparing-median-prices). In fact this is a crucial point Bayesian statisticians emphasise often: **The result is the whole distribution. At least the point estimator and the width of an credibility interval.** Just presenting a point estimate can be misleading in decisions. But simple point estimates seem to be the kind of answers people want to get. But life is not simple - it is complex and full of uncertainty.
 
-```{r comparing-median-prices, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Comparing the median prices for Airbnbs found in the raw data with predictions from the full model.", fig.align='center', fig.dim = c(6, 6)}
+```{r comparing-median-prices, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Comparing the shift of median prices for Airbnbs found in the raw data with predictions from the full model.", fig.align='center', fig.dim = c(6, 6)}
 df_temp <- full_model_post %>%
   pivot_wider(names_from = "wohnlage", values_from = "delta", names_prefix = "wol_") %>% 
   rowwise() %>% 
@@ -1060,7 +1060,7 @@ To be fair: It seems not easy to communicate the uncertainty at the same time as
 
 This approach is not as clear as we wish because the size of circles is hard to distinguish and the circles are overlapping. Anyway, this approach seems to be better than comparing half-eye distributions or boxplots because one can more easily identify the shift of the median prices. Especially the \@ref(fig:comparing-median-prices-half-eye)
 
-```{r comparing-median-prices-uncertainty-circles, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Comparing the median prices for Airbnbs found in the raw data with predictions from the full model. The circles diameter corresponds to the uncertainty of a value.", fig.align='center', fig.dim = c(6, 6)}
+```{r comparing-median-prices-uncertainty-circles, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Comparing the shift of median prices for Airbnbs found in the raw data with predictions from the full model. The circles diameter corresponds to the uncertainty of a value.", fig.align='center', fig.dim = c(6, 6)}
 df_temp3 <- df_airbnb %>% rename(Bezirk = neighbourhood_group_cleansed) %>% 
   group_by(Bezirk) %>% 
   summarise("mean price" = mean(price), "median price" = median(price), "#Airbnbs" = n()) %>% 
@@ -1082,7 +1082,7 @@ CGPfunctions::newggslopegraph(
   scale_size_continuous(range = c(7, 14))
 ```
 
-```{r comparing-median-prices-half-eye, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Comparing the median prices for Airbnbs found in the raw data with predictions from the full model with half-eye plots.", fig.align='center', fig.dim = c(8, 6)}
+```{r comparing-median-prices-half-eye, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Comparing the ranking among median prices for Airbnbs found in the raw data with predictions from the full model with half-eye plots.", fig.align='center', fig.dim = c(8, 6)}
 df_temp2 <- full_model_post %>%
   pivot_wider(names_from = "wohnlage", values_from = "delta", names_prefix = "wol_") %>% 
   rowwise() %>% 
@@ -1164,7 +1164,7 @@ gg3 <- df_airbnb %>%
   ) +
   theme_void() +
   scale_x_discrete(limits=rev) +
-  coord_cartesian(ylim = c(-.5,13.5)) +
+  coord_cartesian(ylim = c(-.5,13)) +
   theme(
     panel.grid = element_blank(),
     panel.border = element_blank(),

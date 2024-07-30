@@ -13,7 +13,7 @@ csl: norsk-apa-manual.csl
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 options(scipen = 1, digits = 2)
-source("code/setup.R")
+source("../code/setup.R")
 
 full_refit = F
 ```
@@ -549,8 +549,8 @@ Indicating that all variables but reviews should be included in the model shows 
 
 ```{r, include=FALSE, cache=!full_refit}
 # base model
-base_model_post <- readRDS("saved_objects/base_model_post.rds")
-base_model_student_post <- readRDS("saved_objects/base_model_student_post.rds")
+base_model_post <- readRDS("../saved_objects/base_model_post.rds")
+base_model_student_post <- readRDS("../saved_objects/base_model_student_post.rds")
 
 max_pred_base <- base_model_post %>% 
   mutate(price = exp(rnorm(1000, mu, sigma))) %>% pull(price) %>% max()
@@ -560,12 +560,12 @@ sigma_base_model <- mean(base_model_post$sigma)
 sigma_base_model_student <- mean(base_model_student_post$sigma)
 
 # minimal adjustement set
-base_model_reputation_wohnlage_post <- readRDS("saved_objects/base_model_reputation_wohnlage_post.rds")
-base_model_reputation_wohnlage_student_post <- readRDS("saved_objects/base_model_reputation_wohnlage_student_post.rds")
+base_model_reputation_wohnlage_post <- readRDS("../saved_objects/base_model_reputation_wohnlage_post.rds")
+base_model_reputation_wohnlage_student_post <- readRDS("../saved_objects/base_model_reputation_wohnlage_student_post.rds")
 
 # full model
-full_model_post <- readRDS("saved_objects/full_model_post.rds")
-full_model_verbose_post <- readRDS("saved_objects/full_model_verbose_post.rds")
+full_model_post <- readRDS("../saved_objects/full_model_post.rds")
+full_model_verbose_post <- readRDS("../saved_objects/full_model_verbose_post.rds")
 ```
 
 ### Baseline models
@@ -1076,7 +1076,7 @@ For *Wohnlage* the estimated parameter only can be interpreted as the direct eff
 ```{r prepare-interactive-data, include=FALSE, cache=!full_refit}
 ndraw <- 30
 
-full_model_verbose_post_summary <- readRDS("saved_objects/full_model_verbose_post_summary.rds") %>% 
+full_model_verbose_post_summary <- readRDS("../saved_objects/full_model_verbose_post_summary.rds") %>% 
   select(-rhat, -ess_bulk) %>% 
   filter(!str_starts(parameter, "delta")) %>% 
   filter(!str_starts(parameter, "reputation")) %>% 

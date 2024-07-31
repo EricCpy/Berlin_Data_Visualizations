@@ -178,7 +178,17 @@ plot_ly() %>%
   )
 ```
 
-# Correlation between rent prices and number of AirBnBs
+## Objectives
+
+1. **Number of Airbnbs by District & Data Overview** (Florian/Eric)
+2. **Effect of Airbnb Quantity on Pricing & Data Overview** (Pavlo)
+3. **Impact of Bezirk Reputation on Pricing** (Simon)
+4. **Influence of Additional Data on Airbnb Pricing & Overview** (Simon)
+5. **Analysis of Pricing in Relation to Amenities and Attributes** (Simon)
+6. **Sentiment Analysis of Reviews and Titles; Correlation with price and neighborhood** (Eric)
+
+# Correlation between rent prices and number of Airbnbs
+<h5 class="author">by Pavlo Kravets</h5>
 
 In the recent years, AirBnB became controversial due to it's perceived impact on
 prices and availability of long-term rentals. The idea is that short-term rentals
@@ -266,16 +276,6 @@ and the rent, but it is hardly linear. Moreover, given our previous findings reg
 rents around the city, we cannot state with certainty that AirBnBs increase rent prices
 in the area - they may just gravitate towards more expensive parts of the city.
 
-
-## Objectives
-
-1. **Number of Airbnbs by District & Data Overview** (Florian/Eric)
-2. **Effect of Airbnb Quantity on Pricing & Data Overview** (Pavlo)
-3. **Impact of Bezirk Reputation on Pricing** (Simon)
-4. **Influence of Additional Data on Airbnb Pricing & Overview** (Simon)
-5. **Analysis of Pricing in Relation to Amenities and Attributes** (Simon)
-6. **Sentiment Analysis of Reviews and Titles; Correlation with price and neighborhood** (Eric)
-
 # Regression of the influence of Bezirk reputation
 <h5 class="author">by Simon Schäfer</h5>
 
@@ -286,7 +286,7 @@ q75_reinickendorf <- df_airbnb %>% filter(neighbourhood_group_cleansed == "Reini
   pull(price) %>% quantile(.75)
 ```
 
-We want to estimate the influence the reputation of each *Bezirk* might have on the price for a night.^[Probably the division by *Bezirk* is too rough. A divison into *Kietz* might be more promising to find some meaningful effects.] A first comparison of the median or mean prices per *Bezirk* suggest that there might be some meaningful difference to investigate on (see Table \@ref(tab:airbnb-price-by-bezirk-table)). To stay a night in *Mitte* seems to be twice as expensive as staying in *Reinickendorf*.
+We want to estimate what influence the reputation of each *Bezirk* (district) might have on the price for a night.^[Probably the division by *Bezirk* is too rough. A division into *Kiez* (neighborhood) might be more promising to find some meaningful effects.] A first comparison of the median or mean prices per *Bezirk* suggests that there might be some meaningful differences to investigate on (see Table \@ref(tab:airbnb-price-by-bezirk-table)). Staying a night in *Mitte* seems to be twice as expensive as staying in *Reinickendorf*.
 
 ```{r airbnb-price-by-bezirk-table, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, results="asis"}
 cat(
@@ -316,9 +316,9 @@ df_airbnb %>% rename(Bezirk = neighbourhood_group_cleansed) %>%
   )
 ```
 
-Figure \@ref(fig:airbnb-price-by-bezirk) shows the price for a night at Airbnbs per *Bezirk*. As was already pointed out the prices have a long tail towards higher prices. For the 25 % quantile for *Mitte* we find a value of `r q25_mitte` and for the 75 % quantile for Reinickendorf a value of `r q75_reinickendorf`. Thus for those two extreme *Bezirke* the boxes show almost no overlap. Comparing any other pair we find the boxes overlap more.
+Figure \@ref(fig:airbnb-price-by-bezirk) shows the price for a night at Airbnbs per *Bezirk*. As we already pointed out, the prices have a long tail towards higher prices. For the 25% quantile of *Mitte* we find a value of `r q25_mitte` and for the 75% quantile of *Reinickendorf* a value of `r q75_reinickendorf`. Thus for these two extreme *Bezirke* the boxes show almost no overlap. When comparing any other pair, we find the boxes overlap more.
 
-```{r airbnb-price-by-bezirk, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Showing the distribution of the price per Bezirk. Dashed line shows the 25 % quantile for Mitte and the 75 % quantile for Reinickendorf which are very close.", fig.align='center', fig.dim = c(8, 6)}
+```{r airbnb-price-by-bezirk, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Showing the distribution of the price per Bezirk. Dashed line shows the 25% quantile of Mitte and the 75% quantile of Reinickendorf.", fig.align='center', fig.dim = c(8, 6)}
 df_airbnb %>% ggplot(
   aes(
     y = neighbourhood_group_cleansed, 
@@ -329,7 +329,7 @@ df_airbnb %>% ggplot(
   geom_boxplot(width = 0.1, fill = "white") +
   scale_fill_manual(values = bezirk_colors, name = "Bezirk") +
   ylab("Bezirk") +
-  xlab("price in €") +
+  xlab("Price in €") +
   theme(
     legend.position = "bottom",
     legend.title.position = "top"
@@ -339,9 +339,9 @@ df_airbnb %>% ggplot(
   geom_vline(xintercept = q75_reinickendorf, lty = 2, color = "black")
 ```
 
-Figure \@ref(fig:airbnb-logprice-by-bezirk) shows the price for a night at Airbnbs per Bezirk on the log scale. For the remainder of this section we will use the logarithm of the Airbnb prices. Most of the price distribuitions look pretty similar. Nevertheless, we will investigate if we can find an effect on the Airbnb prices by something we model as *Bezirk* reputation.
+Figure \@ref(fig:airbnb-logprice-by-bezirk) shows the price for a night at Airbnbs per Bezirk on a logarithmic scale. For the remainder of this section we will use the logarithm of the Airbnb prices. Most of the price distributions look quite similar. Nevertheless, we will investigate whether we can find an effect on the Airbnb prices based on something we model as *Bezirk* reputation.
 
-```{r airbnb-logprice-by-bezirk, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Showing the distribution of the logarithm of the price per Bezirk. Dashed line shows the 25 % quantile for Mitte and the 75 % quantile for Reinickendorf which are very close.", fig.align='center', fig.dim = c(8, 8)}
+```{r airbnb-logprice-by-bezirk, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Showing the distribution of the logarithm of the price per Bezirk. Dashed line shows the 25% quantile of Mitte and the 75% quantile of Reinickendorf.", fig.align='center', fig.dim = c(8, 8)}
 df_airbnb %>% ggplot(
   aes(
     y = neighbourhood_group_cleansed, 
@@ -352,7 +352,7 @@ df_airbnb %>% ggplot(
   geom_boxplot(width = 0.2, fill = "white") +
   scale_fill_manual(values = bezirk_colors, name = "Bezirk") +
   ylab("Bezirk") +
-  xlab("log(price)") +
+  xlab("Log(Price)") +
   theme(
     legend.position = "bottom",
     legend.title.position = "top"
@@ -363,9 +363,7 @@ df_airbnb %>% ggplot(
 
 ## Disclaimer
 
-This section was written parallel to the personal revision of Bayesian regression methods. Thus one finds some discussion of DAGs and visualisation of simulated data - not only the real data from the Airbnb dataset. In the first part of the chapter one finds a step by step evolution for the first steps of the model used later with some explanations why this approach might be of value.
-
-**tl;dr**
+This section was written in parallel with the personal revision of Bayesian regression methods. Therefore, it includes discussions of DAGs and visualizations of simulated data, in addition to the real data from the Airbnb dataset. The first part of the chapter contains a step-by-step development of the initial model.
 
 * This approach is valuable if one tries to estimate causal effects.
 * This approach will not lead to the best predictive model.
@@ -401,11 +399,11 @@ sim_reputation_only_model <- tibble(
 )
 ```
 
-Following @mcelreath_statistical_2020 book on bayesian statistics we start by specify two base models and simulate data from those to compare it with the real data. Simulating data and comparing it to real data is a good possibility to get a feeling for plausible priors [@mcelreath_statistical_2020, p. 85]. 
+Following the @mcelreath_statistical_2020 book on Bayesian statistics, we start by specifying two base models and simulating data from them to compare it with the real data. Simulating data and comparing it to real data is a good way to get a sense of plausible priors [@mcelreath_statistical_2020, p. 85]. 
 
-The most basic model possible assumes that the price just follows a given distribution (e.g. normal distribution) and that there are no influences on price. This is probably not correct. An equal approach on simulation comes from a model where we believe that the price is dependent on some variables but those variables were not measured. The corresponding DAG (directed acyclic graph) is shown in Figure \@ref(fig:dag-base-model).
+The most basic model assumes that the price follows a given distribution (e.g. normal distribution) and that there are no influences on price. This is probably not correct. A similar approach for simulation comes from a model where we believe that the price depends on some variables, but those variables were not measured. The corresponding DAG (directed acyclic graph) is shown in Figure \@ref(fig:dag-base-model).
 
-```{r dag-base-model, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="DAG for most basic model", fig.align='center', fig.dim = c(4, 4)}
+```{r dag-base-model, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="DAG for the most basic model", fig.align='center', fig.dim = c(4, 4)}
 dag <- dagify(
   price ~ u,
   latent = "u",
@@ -428,7 +426,7 @@ dag <- dagify(
   )) %>% plot_arrows_on_top()
 ```
 
-As starting values for the base model a mean price of 100 € was chosen assuming (before inspecting the real data) this might be a realistic price. This corresponds to a value of `r log(100)` on the log scale. As standard deviation \(0.5\) was chosen. The statistical model is shown in Equation \@ref(eq:base-model). 
+As starting values for the base model a mean price of 100€ was chosen, assuming this might be a realistic price (before inspecting the real data). This corresponds to a value of `r log(100)` on the log scale. As standard deviation \(0.5\) was chosen. The statistical model is shown in Equation \@ref(eq:base-model). 
 
 \begin{equation} 
 log(price) \sim Normal(\mu, \sigma) \\
@@ -437,7 +435,7 @@ log(price) \sim Normal(\mu, \sigma) \\
 (\#eq:base-model)
 \end{equation} 
 
-The statistical model formulated in Equation \@ref(eq:base-model) uses point-wise defined "priors" - and thus is not a bayesian but a frequentist model. Compare this to Equation \@ref(eq:base-model-bayesian). Here $\mu$ and $\sigma$ are distributions - not single values. The mean and standard deviation chosen in the frequentist model are both chosen in the prior for $\mu$ and $\sigma$ got a completly new distribution.
+The statistical model formulated in Equation \@ref(eq:base-model) uses point-wise defined "priors" and is not a Bayesian but a frequentist model. In contrast, equation \@ref(eq:base-model-bayesian) specifies $\mu$ and $\sigma$ as distributions rather than single values. The mean and standard deviation chosen in the frequentist model are used as parameters in the prior for $\mu$, while $\sigma$ has a completely new distribution.
 
 \begin{equation} 
 log(price) \sim Normal(\mu, \sigma) \\
@@ -446,7 +444,7 @@ log(price) \sim Normal(\mu, \sigma) \\
 (\#eq:base-model-bayesian)
 \end{equation} 
 
-Since $\mu$ and $\sigma$ vary in the bayesian model \@ref(eq:base-model-bayesian) we find the simulated price range to be wider compared with the simulations from the frequentist model \@ref(eq:base-model). The results can be seen in Figure \@ref(fig:price-distribution-simulated). By accident the choice for the standard deviation produced a simulated distribution that is almost as wide as the real data for the baysian prior. For the frequentist prior the simulated distribution is even narrower and thus the prior standard deviation might be a little bit larger if it should be less restrictive.
+Since $\mu$ and $\sigma$ vary in the Bayesian model \@ref(eq:base-model-bayesian), we find that the simulated price range is wider compared to the simulations from the frequentist model \@ref(eq:base-model). The results can be seen in Figure \@ref(fig:price-distribution-simulated). By coincidence, the choice for the standard deviation produced a simulated distribution that is almost as wide as the real data for the Bayesian prior. For the frequentist prior the simulated distribution is even narrower, suggesting that the prior standard deviation might need to be slightly larger to be less restrictive.
 
 ```{r price-distribution-simulated, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Distribution of prices on the log scale for real data and data simulated from priors", fig.align='center'}
 sim_base_model %>% 
@@ -465,11 +463,11 @@ sim_base_model %>%
   xlab("log(price)")
 ```
 
-Note, that the DAG shown in Figure \@ref(fig:dag-base-model) is corresponding to both equations. The important role of DAGs is not to define an exact statistic model but to show the beliefs about causual effects that generate the real data. It is benefitial to create a graphical represenation of the assumed casual model to select which covariables to include in the statistical model. In a DAG one can identify e.g. fork-, pipe- or collider-constallations and identify backdoor paths. Which covariable to include or exclude depends on the effect one tries to estimate (to investigate a hypothesis).
+Note, that the DAG shown in Figure \@ref(fig:dag-base-model) corresponds to both equations. The important role of DAGs is not to define an exact statistic model but to show the beliefs about causal effects that generate the real data. It is beneficial to create a graphical representation of the assumed causal model to select which covariables to include in the statistical model. In a DAG, one can identify for example, fork, pipe or collider constellations and detect backdoor paths. The decision on which covariable to include or exclude depends on the effect one is trying to estimate or the hypothesis being investigated.
 
-Since the goal is to estimate a possible influence of the *Bezirk* reputation it should be included in the DAG explicitly. Since there is no measurement of the *Bezirk* reputation (e.g. from a conducted survey) it is an unobserved (latent) variable. Because *Bezirk* reputation is target for our investigation we will declare it as our exposure (treatment). Moving a Airbnb from one *Bezirk* to another physically is difficult.^[Probably the *Bezirk* borders won't change in near future as well. But they do rarely.] So it might seem odd to think of *Bezirk* reputation as the treatment. But using the posterior the effect of changing the district can be calculated easily. Figure \@ref(fig:dag-reputation-only-model) shows the corresponding DAG.
+Since the goal is to estimate the possible influence of the *Bezirk* reputation, it should be included in the DAG explicitly. Since there is no direct measurement of the *Bezirk* reputation (e.g., from a conducted survey), it is an unobserved (latent) variable. Because *Bezirk* reputation is the focus of our investigation, we will declare it as our exposure (treatment). Physically moving an Airbnb from one *Bezirk* to another is difficult.^[The *Bezirk* borders are unlikely to change in the near future, though they do rarely.] It might seem odd to consider the *Bezirk* reputation as the treatment. However, using the posterior the effect of changing the district can be calculated easily. Figure \@ref(fig:dag-reputation-only-model) shows the corresponding DAG.
 
-```{r dag-reputation-only-model, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="DAG for most basic model", fig.align='center', fig.dim = c(6, 4)}
+```{r dag-reputation-only-model, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="DAG for model with reputation", fig.align='center', fig.dim = c(6, 4)}
 dag <- dagify(
   price ~ u + reputation,
   latent = c("u"),
@@ -493,7 +491,7 @@ dag <- dagify(
     )) %>% plot_arrows_on_top()
 ```
 
-A corresponding statistical representation can be seen in Equation \@ref(eq:reputation-model). The simulated distribution of log prices can be seen in Figure \@ref(fig:price-distribution-simulated-reputation). The simulated distributions are spread out wider than for real data (see Figure \@ref(fig:airbnb-logprice-by-bezirk)) so that there are multiple pairs of districts where the boxes do not overlap. Thus one can assume the effect of *Bezirk* reputation be smaller than assumed in this priors.
+A corresponding statistical representation can be seen in Equation \@ref(eq:reputation-model). The simulated distribution of log prices is shown in Figure \@ref(fig:price-distribution-simulated-reputation). The simulated distributions are spread out wider than for real data (see Figure \@ref(fig:airbnb-logprice-by-bezirk)), resulting in multiple pairs of districts where the boxes do not overlap. Thus, one can assume that the effect of *Bezirk* reputation is smaller than assumed in these priors.
 
 \begin{equation} 
 log(price) \sim Normal(\mu, \sigma) \\
@@ -523,9 +521,9 @@ sim_reputation_only_model %>%
 
 ## Dicussion of exemplary backdoor paths
 
-A possible variable to include in the final model is the quality of residental area (*Wohnlage*) [@noauthor_wohnlagen_2024]. A high amount good *Wohnlage* in a *Bezirk* might influence its reputation. It might influence the rent or purchuse price of a flat used as Airbnb as well. So the host has to ask for higher payment per night to compensate the rent or loan installment he has to pay and maybe wants to profit by a possible good reputation of the *Bezirk* to increase his income a little more - raising the price per night once again.
+A possible variable to include in the final model is the quality of the residential area (*Wohnlage*) [@noauthor_wohnlagen_2024].A high amount of good *Wohnlage* in a *Bezirk* might influence its reputation. It could also impact the rent or purchase price of a flat used as an Airbnb. Consequently, the host has to ask for a higher price per night to cover his rent or loan installment and might also seek to capitalize on the *Bezirk*'s good reputation to increase income further, thereby raising the price per night even more.
 
-In \@ref(fig:dag-reputation-model-wohnlage) one can see a model with *Wohnlage* added as a covariable. Since *Wohnlage* influences reputation as well as price there is fork pattern. *Wohnlage* is a classical confounder [@mcelreath_statistical_2020, p. 189].
+In Figure \@ref(fig:dag-reputation-model-wohnlage), one can see a model with *Wohnlage* added as a covariable. Since *Wohnlage* influences both reputation and price, it creates a fork pattern. *Wohnlage* is a classical confounder [@mcelreath_statistical_2020, p. 189].
 
 ```{r, include=FALSE, cache=!full_refit}
 dag <- dagify(
@@ -556,7 +554,7 @@ dag <- dagify(
   )) %>% plot_arrows_on_top()
 ```
 
-Using a tool called dagitty [@textor_robust_2016] one can draw DAGs in the browser. Furthermore, one can get a minimal adjustment set and information on which assumptions about conditional independence would be testable if the model specified is correct. It is possible to indicate additional covariables one intends to use to check if one opens any backdoor path this way. The code for the DAG can be used to display DAGs in R as well (e.g. with the **ggdag** package). Figure \@ref(fig:dag-reputation-model-wohnlage-adjustment-set) shows that *Wohnlage* is part of the so called minimal adjustment set. Thus it has to be included to estimate (either the total or direct) causual effect.
+Using a tool called Dagitty [@textor_robust_2016], one can draw DAGs directly in the browser. Furthermore, Dagitty provides a minimal adjustment set and information on which assumptions about conditional independence are testable if the specified model is correct. It is possible to indicate additional covariables one intends to use and check if they introduce any backdoor paths. The code for the DAG can also be used to display DAGs in R (e.g., with the **ggdag** package). Figure \@ref(fig:dag-reputation-model-wohnlage-adjustment-set) shows that *Wohnlage* is part of the so called minimal adjustment set. Thus, it must be included to estimate the (total or direct) causal effect.
 
 ```{r dag-reputation-model-wohnlage-adjustment-set, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="DAG for model with reputation and Wohnlage showing minimal adjustment set membership", fig.align='center', fig.dim = c(6, 4)}
 (ggdag_adjustment_set(dag, use_labels = "label", text = FALSE, shadow = T) + 
@@ -566,7 +564,7 @@ Using a tool called dagitty [@textor_robust_2016] one can draw DAGs in the brows
   )) %>% plot_arrows_on_top()
 ```
 
-One could also be tempted to include the results of the review sentiment analysis in the regression model. Assuming that reviews are influenced by peoples expectations and their actual experience with an Airbnb visit one can argue that is influenced by price as well as by *Bezirk* reputation. If the price is high expectations are high as well. If the reputation of the *Bezirk* is good the expectations might be high even if the price is modest. The resulting model can be seen in Figure \@ref(fig:dag-reputation-model-wohnlage-reviews).
+One could also be tempted to include the results of the review sentiment analysis in the regression model. Assuming that reviews are influenced by people's expectations and their actual experience with an Airbnb visit, one can argue that reviews are affected by both price and *Bezirk* reputation. If the price is high expectations are likely high as well. If the reputation of the *Bezirk* is good, expectations might be high even if the price is modest. The resulting model can be seen in Figure \@ref(fig:dag-reputation-model-wohnlage-reviews).
 
 ```{r, include=FALSE, cache=!full_refit}
 dag <- dagify(
@@ -598,8 +596,8 @@ dag <- dagify(
   )) %>% plot_arrows_on_top()
 ```
 
-Once again the adjustment set only includes *Wohnlage*. Since *review* is influenced by the price and reputation it is a collider. In contrast to a fork a collider backdoor path is closed as long as the collider is not part of the model. Thus it should not be included in the model (see Figure \@ref(fig:dag-reputation-model-wohnlage-reviews-adjustment-set)).
- 
+Once again, the adjustment set includes only *Wohnlage*. Since *review* is influenced by both price and reputation, it acts as a collider. In contrast to a fork, a collider backdoor path is closed as long as the collider is not part of the model. Therefore, *review* should not be included in the model (see Figure \@ref(fig:dag-reputation-model-wohnlage-reviews-adjustment-set)).
+
 ```{r dag-reputation-model-wohnlage-reviews-adjustment-set, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="DAG for model with reputation, Wohnlage and review showing minimal adjustment set membership", fig.align='center', fig.dim = c(6, 4)}
 (ggdag_adjustment_set(dag, use_labels = "label", text = FALSE, shadow = T) + 
   theme_dag() +
@@ -608,7 +606,7 @@ Once again the adjustment set only includes *Wohnlage*. Since *review* is influe
   )) %>% plot_arrows_on_top()
 ```
 
-It is important to understand that variables that are
+It is important to understand that variables that are:
 
 * neither the treatment
 * nor the exposure
@@ -616,7 +614,7 @@ It is important to understand that variables that are
 
 are assumed to be not included in the model.
 
-If one wants to test if an additional covariable would open backdoors one can use the `ggdag_adjust()` function. Resulting backdoor paths are displayed dashed. In Figure \@ref(fig:dag-reputation-model-wohnlage-reviews-collider) one can see that adjusting for reviews (including it in the model) opens a lot of non causal paths.^[I would recommand to use the dagitty web app instead. There the paths directly affected by the collider simply get coloured red:<br>
+If one wants to test whether an additional covariable would introduce backdoor paths, one can use the `ggdag_adjust()` function. Resulting backdoor paths are displayed as dashed lines. Figure \@ref(fig:dag-reputation-model-wohnlage-reviews-collider) shows that adjusting for reviews (including it in the model) introduces many non causal paths.^[I would recommend to use the Dagitty web app instead. There, paths affected by the collider are highlighted in red:<br>
 ![dagitty collider visualization](images/dagitty_collider.png){width=50%}]
 
 ```{r dag-reputation-model-wohnlage-reviews-collider, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="DAG for model with reputation, Wohnlage and review with manual non minimal adjustment set membership showing opened backdoor paths", fig.align='center', fig.dim = c(6, 4)}
@@ -627,17 +625,17 @@ If one wants to test if an additional covariable would open backdoors one can us
     )) %>% plot_arrows_on_top()
 ```
 
-The step by step model builing description ends at this point. In the next section the full model used for the regression analysis will be presented.
+The step-by-step model building description ends at this point. In the next section, the full model used for the regression analysis will be presented.
 
 ## Full model
 
-The full model includes covariables of three types and from various sources. The covariables framed by a green rect (see Figure \@ref(fig:dag-reputation-full-model)) are features given by the Airbnb overview dataset. They yield basic information about how many people can stay there, how many rooms are there and if the Airbnb is an entire flat, a single room in a flat or a single room in a hotel.
+The full model includes covariables of three types from various sources. The covariables framed by a green rectangle (see Figure \@ref(fig:dag-reputation-full-model)) are features provided by the Airbnb overview dataset. They yield basic information about how many people can stay, the number of rooms, and whether the Airbnb is an entire flat, a single room in a flat or a single room in a hotel.
 
-The covariables framed by a purple rect are coming from various external data sources and were assigned to the flats by location. Most of these information is based on datasets with geographical information aggregated by *LOR* and *Urnenwahlbezirk* or calculated distances to spots of interest. We assume that distance to train stations (especially Hauptbahnhof) might influence the price but not the reputation of a district. We include distance to public toilets even though we don't assume a measurable influence on price.
+The covariables framed by a purple rectangle come from various external data sources and were assigned to the flats based on their location. Most of this information is derived from datasets with geographical data aggregated by *LOR* and *Urnenwahlbezirk* or calculated distances to points of interest. We assume that the distance to train stations (especially Hauptbahnhof) might influence the price but not the reputation of a district. We also include the distance to public toilets, even though we don't expect a measurable influence on the price.
 
-Last we added more detailed information about the amenities in the Airbnbs that we extracted from the full detailed Airbnb dataset.
+Lastly, we added more detailed information about the amenities in the Airbnbs, which we extracted from the full detailed Airbnb dataset.
 
-```{r dag-reputation-full-model, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Full DAG.", fig.align='center', fig.dim = c(8, 8)}
+```{r dag-reputation-full-model, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Full DAG", fig.align='center', fig.dim = c(8, 8)}
 gg_temp <- ((ggdag_status(full_dag, use_labels = "name", text = FALSE) + 
     scale_fill_manual(
       labels = c("exposure", "outcome", "latent"), 
@@ -660,7 +658,7 @@ gg_temp <- ((ggdag_status(full_dag, use_labels = "name", text = FALSE) +
 plot(gg_temp)
 ```
 
-It seems plausible that crime rates influence the reputation of an district. And there are theories predicting higher crime rated for regions with lower living standards. Thus we get a new backdoor path there - but it is already closed when the model is adjusted for *Wohnlage* (see Figure \@ref(fig:dag-reputation-full-model-minimal-adjustment-set)). Crime rate is not included in the final models because it possibly explaines variance of *Bezirk* reputation and thus lower the covariance to price (precision parasite effect) as well as amplicate the bias of unobserved confounds between exposure and target.^[Closing all backdoor paths is not the only criteria to choose covariables on. There are other effects to consider.]
+It seems plausible that crime rates influence the reputation of a district. Additionally, theories predict higher crime rates in regions with lower living standards. This introduces a new backdoor path. However, it is already closed when the model is adjusted for *Wohnlage* (see Figure \@ref(fig:dag-reputation-full-model-minimal-adjustment-set)). Crime rate is not included in the final models because it may explain variance of *Bezirk* reputation, thereby reducing the covariance with price (precision parasite effect) and potentially amplifying the bias of unobserved confounders between exposure and target.^[Closing all backdoor paths is not the only criterion for selecting covariables. There are also other effects to consider.]
 
 ```{r dag-reputation-full-model-minimal-adjustment-set, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Full DAG with minimal adjustment set. Only Wohnlage is nedded to close backdoor paths.", fig.align='center', fig.dim = c(8, 8)}
 (ggdag_adjustment_set(full_dag, use_labels = "name", text = FALSE, shadow = T) + 
@@ -670,7 +668,7 @@ It seems plausible that crime rates influence the reputation of an district. And
   )) %>% plot_arrows_on_top() 
 ```
 
-Indicating that all variables but reviews should be included in the model shows no non-closed backdoor paths (see Figure \@ref(fig:dag-reputation-full-model-adjustment-set)). Thus the model might yield an unconfounded estimator for the effect of the *Bezirk* reputation. The reason to include other covariables than those from the minimal adjustment set is that we hope to reduce the variance in the Airbnb price by reducing the amount of unobserved sources of variance. Hopefully this leads to narrower posterior predictions to identify a possible causual effect of the *Bezirk* reutation.
+Indicating that all variables except reviews should be included in the model shows no non-closed backdoor paths (see Figure \@ref(fig:dag-reputation-full-model-adjustment-set)). Thus, the model might yield an unconfounded estimator for the effect of the *Bezirk* reputation. The reason for including additional covariables beyond those in the minimal adjustment set is that we aim to reduce the variance in Airbnb prices by reducing the amount of unobserved sources of variance. Hopefully this leads to narrower posterior predictions to identify a possible causal effect of the *Bezirk* reputation.
 
 ```{r dag-reputation-full-model-adjustment-set, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Full DAG with all covariables included in the model marked as adjusted. No new backdoor paths opened.", fig.align='center', fig.dim = c(8, 8)}
 (ggdag_adjustment_set(full_dag_adjusted, use_labels = "name", text = FALSE, shadow = T) +
@@ -707,17 +705,17 @@ full_model_verbose_post <- readRDS("./saved_objects/full_model_verbose_post.rds"
 
 ### Baseline models
 
-We will begin with the presentation of the most basic models and demonstrate some common visualizations for Bayesian regression reports. Precisely, we will...
+We will begin with the presentation of the most basic models and demonstrate some common visualizations for Bayesian regression reports. Precisely, we will:
 
 * distinguish between parameter estimates and posterior predictions.
-* distinguish between parameter estimations and predicted effect (by contrating predictions).
-* show the influence of robust regression assuming student distributed prices instead of normal distributed ones (not bound to Bayesian methods).
+* distinguish between parameter estimations and predicted effects (by contrasting predictions).
+* show the influence of robust regression assuming student distributed prices instead of normal distributed ones (not limited to Bayesian methods).
 
-In Figure \@ref(fig:base-model-4x4) one can see the difference between the parameter estimation (distribution) of the mean price (left) and the posterior predictions for the distribution of Airbnb prices (right) for the model represented by Figure \@ref(fig:dag-base-model). It is clear that the distribution of the prices is much wider than the estimated distribution of the mean value since one has to exponentiate the result of the random sampling around the mean.
+In Figure \@ref(fig:base-model-4x4), one can see the difference between the parameter estimation (distribution) of the mean price (left) and the posterior predictions for the distribution of Airbnb prices (right) for the model represented in Figure \@ref(fig:dag-base-model). It is clear that the distribution of the prices is much wider than the estimated distribution of the mean value because the result of the random sampling around the mean must be exponentiated.
 
-Comparing the results from the model with $Normal(\mu, \sigma)$ distributed prices (top) with the results from the model that assumed $Student(2, \mu, \sigma)$ distributed prices (bottom) we find lower mean price for the student model. For the price distributions we find more Airbnb prices in the range (200 €, 400 €) for the normal model. In contrast we find thicker tails for the student model so more predictions about Airbnb prices higher than 400 €. The mean $\sigma$ value for the normal model is `r sigma_base_model` and for the student model `r sigma_base_model_student`. The maximum price for an Airbnb is `r max_pred_base` € and respective `r format(max_pred_base_student, scientific=FALSE, big.mark="_")` €. For the studnet distribution we find more Airbnb prices predicted to be  around 0 €.
+Comparing the results from the model with $Normal(\mu, \sigma)$ distributed prices (top) with the results from the model that assumed $Student(2, \mu, \sigma)$ distributed prices (bottom), we observe a lower mean price for the student model. For the price distributions we find more Airbnb prices in the range of 200€ to 400€ for the normal model. In contrast, we find thicker tails for the student model, resulting in more predictions about Airbnb prices higher than 400€. The mean $\sigma$ value for the normal model is `r sigma_base_model` and for the student model `r sigma_base_model_student`. The maximum price for an Airbnb is `r max_pred_base`€ and respective `r format(max_pred_base_student, scientific=FALSE, big.mark="_")`€. For the student distribution we find more Airbnb prices predicted to be around 0€.
 
-```{r base-model-4x4, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Comparing parameter estimations and posterior predictions (left vs right) and assumed normal and student distributed prices (top vs bottom). The x-axis is clipped at 800 €.", fig.align='center', fig.dim = c(8, 8)}
+```{r base-model-4x4, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Comparing parameter estimations and posterior predictions (left vs right) and assumed normal and student distributed prices (top vs bottom). The x-axis is clipped at 800€.", fig.align='center', fig.dim = c(8, 8)}
 g_param_norm <- base_model_post %>% 
   mutate(price = exp(mu)) %>% 
   ggplot(aes(x = price)) +
@@ -760,7 +758,7 @@ gridExtra::grid.arrange(
 )
 ```
 
-In Figure \@ref(fig:base-model-rep-wol-parameter) on can compare the parameter estimation for a normal and a student distributed model once more. The DAG corresponding to the model these results are based on is shown in Figure \@ref(fig:dag-reputation-model-wohnlage). The means are estimated for each *Bezirk* and according to each value of *Wohnlage*. We can see that the means for highest value of *Wohnlage* are seperated from those of the lower two values. For the latter there is substantial overlap of the distributions. The separation seems a little bit better for the student model. It is also clear that some parameter distributions show no overlap comparing the same *Wohnlage* among districts.
+In Figure \@ref(fig:base-model-rep-wol-parameter), one can compare the parameter estimates for the normal and student distributed models once more. The DAG corresponding to the model these results are based on is shown in Figure \@ref(fig:dag-reputation-model-wohnlage). The means are estimated for each *Bezirk* and according to each value of *Wohnlage*. We can see that the means for the highest value of *Wohnlage* are separated from those of the lower two values. For the latter, there is substantial overlap of the distributions. The separation appears somewhat better for the student model. It is also clear that some parameter distributions show no overlap comparing the same *Wohnlage* among districts.
 
 ```{r base-model-rep-wol-parameter, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Comparing parameter estimations for assumed normal and student distributed prices (top vs bottom).", fig.align='center', fig.dim = c(8, 8)}
 g_param_norm <- base_model_reputation_wohnlage_post %>% 
@@ -794,7 +792,7 @@ ggpubr::ggarrange(
 )
 ```
 
-To get an estimation of the causual effect of the *Bezirks* reputation it is necessary to inspect contrast plots (see Figure \@ref(fig:base-model-rep-wol-parameter-contrasts)). To limit the amount of comparisons the districts *Mitte* (high prices), *Neukölln* and *Tempelhof-Schöneberg* (medium prices) as well as *Reinickendorf* (low prices) have been selected. It can be seen that the mean price (aggregated over all *Wohnlagen*^[To be correct one would have to select prices according to the distribution of the *Wohnlage* values per district. It was assumed that they all make up one third in each distric to simplify the analysis.]) differ by more than 10 € for all comparisons but for the apir *Neukölln* and *Tempelhof*. One could conclude that teleporting an Airbnb from *Reinickendorf* to *Mitte* allows for a price increase of around 50 €.
+To estimate the causal effect of the *Bezirk* reputation, it is necessary to inspect contrast plots (see Figure \@ref(fig:base-model-rep-wol-parameter-contrasts)). To limit the amount of comparisons the districts *Mitte* (high prices), *Neukölln* and *Tempelhof-Schöneberg* (medium prices) and *Reinickendorf* (low prices) have been selected. It can be seen that the mean price (aggregated over all *Wohnlagen*^[To be precise, one would have to select prices according to the distribution of the *Wohnlage* values per district. It was assumed that they all make up one third in each district to simplify the analysis.]) differ by more than 10€ for all comparisons except for the pair *Neukölln* and *Tempelhof*. One could conclude that moving an Airbnb from *Reinickendorf* to *Mitte* allows for a price increase of around 50€.
 
 ```{r base-model-rep-wol-parameter-contrasts, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Comparing predictions for mean prices aggregated over values of *Wohnlagen*.", fig.align='center', fig.dim = c(8, 6)}
 bdat <- base_model_reputation_wohnlage_post %>% 
@@ -843,9 +841,9 @@ res1 %>% bind_cols(
   )
 ```
 
-Next we will inspect how this difference in mean price is related to the prediction of the Airbnb price distribution (see Figure \@ref(fig:base-model-rep-wol-predictions)). Here the price distributions for the normal and student model look pretty similar. The thicker tails for the student model are barely visible. But the maximum predicted price is (again) much to high and there are many predictions around 0 €. Thus we won't use the student modeling approach for the full model later.
+Next we will examine how the difference in mean price relates to the prediction of the Airbnb price distribution (see Figure \@ref(fig:base-model-rep-wol-predictions)). Here the price distributions for the normal and student model look quite similar. The thicker tails of the student model are barely visible. However, the maximum predicted price is, once again, much too high and there are many predictions around 0€. Therefore, we will not use the student modeling approach for the full model later.
 
-The price distributions for all values of *Wohnlage* almost totally overlap even though the parameter estimations for their means were good distinguishable. Beside from the distributions for *Reinickendorf* and *Marzahn-Hellersdorf* (which are a little bit more left skewed) they all look pretty similar as well in this plot.
+The price distributions for all values of *Wohnlage* almost completely overlap, even though the parameter estimations for their means were distinguishable. Aside from the distributions for *Reinickendorf* and *Marzahn-Hellersdorf* (which are a little bit more left skewed), they all look pretty similar in this plot.
 
 ```{r base-model-rep-wol-predictions, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Comparing posterior predictions for assumed normal and student distributed prices (top vs bottom). The x-axis is clipped by 500 €.", fig.align='center', fig.dim = c(8, 8)}
 g_pred_norm <- base_model_reputation_wohnlage_post %>% 
@@ -1142,7 +1140,7 @@ df_temp %>% left_join(
   )
 ```
 
-### Section conclusion
+### Conclusion
 
 In Figure \@ref(fig:comparing-median-prices) on can see the median prices for Airbnbs as found in the real dataset and predicted from the full model. The differences probably can be explained by the fact that the model predictions assume Airbnbs that are are equally big with equal amenities. The difference between the predicted median prices by the full model can be interpreted as caused by the effect of *Bezirks* reputation. The fact that the median price for Airbnbs in *Spandau* is the highest was somewhat surprising. My personal expectations were:
 

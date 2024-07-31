@@ -8,6 +8,14 @@ output:
     code_folding: hide
 bibliography: references.bib
 csl: norsk-apa-manual.csl
+
+nocite:
+- "@corona_get_nodate"
+- "@noauthor_lebensweltlich_2022"
+- "@noauthor_gigabit_nodate"
+- "@noauthor_strassenverkehrsunfalle_nodate"
+- "@noauthor_standorte_nodate"
+- "@noauthor_geodatensuche_nodate"
 ---
 
 ```{r setup, include=FALSE}
@@ -1877,22 +1885,3 @@ In conclusion, our analysis of Airbnb reviews and titles in English and German r
 # References
 
 <div id="refs"></div>
-
-# Appendix
-
-## Sources for inspiration
-
-* [Scientific article on Berlin rents](https://link.springer.com/article/10.1007/s11943-024-00340-6): will we find similar effects for  rents?
-* [Berlin Rents kaggle report](https://www.kaggle.com/code/gurjeet123/berlin-rent-insights): Are animals a price factor for Airbnb?
-* [Airbnb repot on tableau](https://public.tableau.com/app/profile/ritik.mishra/viz/DataAnalysisofRentalPricesinBerlin/AirBnBBerlin?publish=yes): I think we can do better
-* [Airbnb Berlin automated report for our base data set](https://insideairbnb.com/berlin/)
-
-### Interactive graphs
-
-* [Plotly](https://plotly-r.com/)
-
-### Interactive maps
-
-* [tmap, ggplot2, mapview, mapdeck, leaflet](https://bookdown.org/nicohahn/making_maps_with_r5/docs/mapdeck.html)
-* [Time slider with plotly](https://www.analytics-tuts.com/map-with-time-slider-using-plotly-in-r/)
-* [SF with plotly](https://www.r-bloggers.com/2018/04/visualizing-geo-spatial-data-with-sf-and-plotly/)

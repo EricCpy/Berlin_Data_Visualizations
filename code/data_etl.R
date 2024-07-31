@@ -559,12 +559,15 @@ availability_rate <- df_listings_cleaned %>%
 #rents
 rent_sf <- sf::st_as_sf(df_rents, coords = c("lng", "lat"), crs = st_crs(raw))
 
-rents_by_LOR <- raw %>%
-  st_join(rent_sf, join = sf::st_intersects) %>%
-  group_by(PLR_ID) %>% # Replace 'region_id' with the actual column name of your region IDs
-  summarise(n_offers = n(), mean_rent = mean(rent), mean_rent_per_sqm = mean(rent_per_sqm)) %>% 
-  st_drop_geometry() %>%
-  select(PLR_ID, n_offers, mean_rent, mean_rent_per_sqm)
+#rents_by_LOR <- raw %>%
+#  st_join(rent_sf, join = sf::st_intersects) %>%
+#  group_by(PLR_ID) %>% # Replace 'region_id' with the actual column name of your region IDs
+#  summarise(n_offers = n(), mean_rent = mean(rent), mean_rent_per_sqm = mean(rent_per_sqm)) %>% 
+#  st_drop_geometry() %>%
+#  select(PLR_ID, n_offers, mean_rent, mean_rent_per_sqm)
+#saveRDS(rents_by_LOR, "saved_objects/rents_by_LOR.rds")
+
+rents_by_LOR <- readRDS("saved_objects/rents_by_LOR.rds")
 
 sf_rent_by_LOR <- raw %>% 
   left_join(rents_by_LOR, by = c("PLR_ID" = "PLR_ID"))

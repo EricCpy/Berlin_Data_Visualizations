@@ -178,6 +178,95 @@ plot_ly() %>%
   )
 ```
 
+# Correlation between rent prices and number of AirBnBs
+
+In the recent years, AirBnB became controversial due to it's perceived impact on
+prices and availability of long-term rentals. The idea is that short-term rentals
+such as AirBnB price out the local, as landlords find it more profitable to rent 
+their properties to tourists. The truthfulness of that statement is beyond the
+scope of this work; however, researching possible correlation between prices of 
+long- and short-term rentals may be an interesting topic.
+
+Sadly, obtaining the data on current long-term rent prices is not easy. This data
+is not collected by the city of Berlin, and specialized sites, such as Immoscout,
+have implemented robust anti-scraping mechanisms. Still, we do have older data 
+that details the offerings that were available on Immoscout in 2018. This work
+assumes that the trends of high- and low-rent areas generally held true over time,
+and the data may be of some use.
+
+```{r meanRentByLOR, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Mean rent by LOR", fig.align='center'}
+ggplot(sf_rent_by_LOR) +
+  geom_sf(aes(fill = mean_rent), color = "black", size = 0.2) +  # Smaller internal borders
+  geom_sf(data = borough_borders, fill = NA, color = "black", size = 1) +  # Larger borders for main boroughs
+  scale_fill_gradient(low = "lightyellow", high = "darkred", name = "Mean rent") +
+  theme_void() +
+  labs(fill = "Mean rent")
+
+```
+
+In case of long-term rentals it may make more sense to look int rents per square
+meter.
+
+```{r meanRentPerSqmByLOR, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Mean rent per Sqm by LOR", fig.align='center'}
+ggplot(sf_rent_by_LOR) +
+  geom_sf(aes(fill = mean_rent_per_sqm), color = "black", size = 0.2) +  # Smaller internal borders
+  geom_sf(data = borough_borders, fill = NA, color = "black", size = 1) +  # Larger borders for main boroughs
+  scale_fill_gradient(low = "lightyellow", high = "darkred", name = "Mean rent per Sqm") +
+  theme_void() +
+  labs(fill = "Mean rent per Sqm")
+
+```
+
+We can see that there are several outlier LORs due to low number of rental offers
+in them. Let's examine them, as well as the data without them.
+
+```{r meanRentBoxplot, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Mean rent Outliers", fig.align='center'}
+ggplot(sf_rent_by_LOR, aes(y = mean_rent)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(y = "Mean rent price by LOR") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+As we see, there are some pretty extreme outliers in our data.
+To obtain visualizations that provide some actual insight, we removed them.
+
+```{r meanRentPerSqmByLORNoOutliers, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Mean rent per Sqm by LOR, outliers removed", fig.align='center'}
+ggplot(sf_cleaned_rent_by_LOR) +
+  geom_sf(aes(fill = mean_rent_per_sqm), color = "black", size = 0.2) +  # Smaller internal borders
+  geom_sf(data = borough_borders, fill = NA, color = "black", size = 1) +  # Larger borders for main boroughs
+  scale_fill_gradient(low = "lightyellow", high = "darkred", name = "Mean rent per Sqm") +
+  theme_void() +
+  labs(fill = "Mean rent per Sqm")
+
+```
+
+This map shows us similar "circle" pattern around the center, 
+but also other zones of high rents, such as south-west of Berlin.
+Unlike AirBnB, long-term rentals ar more spread out. We may hypothesize that
+locals are much more agreeable with living not in the dead centre of the city.
+
+```{r rentAirbnbScatter, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Correlation between Rent and number of AirBnBs", fig.align='center'}
+cor_spearman <- cor(rent_and_airbnb[["n"]], rent_and_airbnb[["mean_rent_per_sqm"]], method = "spearman", use = "complete.obs")
+cor_pearson <- cor(rent_and_airbnb[["n"]], rent_and_airbnb[["mean_rent_per_sqm"]], method = "pearson", use = "complete.obs")
+
+ggplot(rent_and_airbnb, aes(x = n, y = mean_rent_per_sqm)) + 
+  geom_point(color = "blue", size = 1) +  
+  geom_smooth(method = "loess", color = "red", se = FALSE) +
+  theme_light() +                      
+  labs(title = paste0("Pearson: ", round(cor_pearson, 2), " Spearman: ", round(cor_spearman, 2)),
+       x = "Number of AirBnBs",               
+       y = "Mean Rent per Sqm")               
+
+```
+
+As we can see, there is a strong positive correlation between the number of AirBnBs
+and the rent, but it is hardly linear. Moreover, given our previous findings regarding
+rents around the city, we cannot state with certainty that AirBnBs increase rent prices
+in the area - they may just gravitate towards more expensive parts of the city.
+
+
 ## Objectives
 
 1. **Number of Airbnbs by District & Data Overview** (Florian/Eric)

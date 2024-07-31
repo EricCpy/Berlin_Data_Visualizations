@@ -107,6 +107,11 @@ df_airbnb <- df_airbnb %>% select(-amenities) %>%
     by = c("id" = "id")
   )
 
+# ---- RENTS -----
+
+df_rents <- read.csv("./data/immo_data.csv") %>%
+  mutate(rent_per_sqm = rent/sqm)
+
 # ---- AREAS -----
 
 #### information ####
@@ -551,3 +556,31 @@ availability_rate <- df_listings_cleaned %>%
   group_by(neighbourhood_group_cleansed) %>%
   summarise(avg_availability = mean(availability_365))
 
+#rents
+rent_sf <- sf::st_as_sf(df_rents, coords = c("lng", "lat"), crs = st_crs(raw))
+
+rents_by_LOR <- raw %>%
+  st_join(rent_sf, join = sf::st_intersects) %>%
+  group_by(PLR_ID) %>% # Replace 'region_id' with the actual column name of your region IDs
+  summarise(n_offers = n(), mean_rent = mean(rent), mean_rent_per_sqm = mean(rent_per_sqm)) %>% 
+  st_drop_geometry() %>%
+  select(PLR_ID, n_offers, mean_rent, mean_rent_per_sqm)
+
+sf_rent_by_LOR <- raw %>% 
+  left_join(rents_by_LOR, by = c("PLR_ID" = "PLR_ID"))
+
+
+
+rents_by_LOR_Q1 <- quantile(rents_by_LOR[['mean_rent_per_sqm']], 0.25, na.rm = TRUE)
+rents_by_LOR_Q3 <- quantile(rents_by_LOR[['mean_rent_per_sqm']], 0.75, na.rm = TRUE)
+rents_by_LOR_IQR <- rents_by_LOR_Q3 - rents_by_LOR_Q1
+rents_by_LOR_lower_bound <- rents_by_LOR_Q1 - 1.5 * rents_by_LOR_IQR
+rents_by_LOR_upper_bound <- rents_by_LOR_Q3 + 1.5 * rents_by_LOR_IQR
+cleaned_rents_by_LOR = rents_by_LOR %>%
+  filter(rents_by_LOR[['mean_rent_per_sqm']] >= rents_by_LOR_lower_bound & rents_by_LOR[['mean_rent_per_sqm']] <= rents_by_LOR_upper_bound)
+
+sf_cleaned_rent_by_LOR <- raw %>% 
+  left_join(cleaned_rents_by_LOR, by = c("PLR_ID" = "PLR_ID"))
+
+rent_and_airbnb = airbnb_count_by_LOR %>% 
+  left_join(cleaned_rents_by_LOR, by = c("PLR_ID" = "PLR_ID"))

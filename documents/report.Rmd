@@ -190,18 +190,18 @@ plot_ly() %>%
 # Correlation between rent prices and number of Airbnbs
 <h5 class="author">by Pavlo Kravets</h5>
 
-In the recent years, AirBnB became controversial due to it's perceived impact on
+In the recent years, Airbnb became controversial due to it's perceived impact on
 prices and availability of long-term rentals. The idea is that short-term rentals
-such as AirBnB price out the local, as landlords find it more profitable to rent 
+such as Airbnb price out the local population, as landlords find it more profitable to rent 
 their properties to tourists. The truthfulness of that statement is beyond the
-scope of this work; however, researching possible correlation between prices of 
+scope of this work. However, researching possible correlation between prices of 
 long- and short-term rentals may be an interesting topic.
 
 Sadly, obtaining the data on current long-term rent prices is not easy. This data
-is not collected by the city of Berlin, and specialized sites, such as Immoscout,
+is not collected by the city of Berlin and specialized sites, such as Immoscout,
 have implemented robust anti-scraping mechanisms. Still, we do have older data 
 that details the offerings that were available on Immoscout in 2018. This work
-assumes that the trends of high- and low-rent areas generally held true over time,
+assumes that the trends of high- and low-rent areas generally held true over time
 and the data may be of some use.
 
 ```{r meanRentByLOR, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Mean rent by LOR", fig.align='center'}
@@ -214,8 +214,7 @@ ggplot(sf_rent_by_LOR) +
 
 ```
 
-In case of long-term rentals it may make more sense to look int rents per square
-meter.
+In case of long-term rentals it may make more sense to look int rents per square meter.
 
 ```{r meanRentPerSqmByLOR, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Mean rent per Sqm by LOR", fig.align='center'}
 ggplot(sf_rent_by_LOR) +
@@ -252,10 +251,10 @@ ggplot(sf_cleaned_rent_by_LOR) +
 
 ```
 
-This map shows us similar "circle" pattern around the center, 
+This map shows us similar a **circle** pattern around the center, 
 but also other zones of high rents, such as south-west of Berlin.
-Unlike AirBnB, long-term rentals ar more spread out. We may hypothesize that
-locals are much more agreeable with living not in the dead centre of the city.
+Unlike Airbnb, long-term rentals ar more spread out. We may hypothesize that
+locals are much more agreeable with living not in the center of the city.
 
 ```{r rentAirbnbScatter, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Correlation between Rent and number of AirBnBs", fig.align='center'}
 cor_spearman <- cor(rent_and_airbnb[["n"]], rent_and_airbnb[["mean_rent_per_sqm"]], method = "spearman", use = "complete.obs")
@@ -271,10 +270,10 @@ ggplot(rent_and_airbnb, aes(x = n, y = mean_rent_per_sqm)) +
 
 ```
 
-As we can see, there is a strong positive correlation between the number of AirBnBs
+As we can see, there is a strong positive correlation between the number of Airbnbs
 and the rent, but it is hardly linear. Moreover, given our previous findings regarding
-rents around the city, we cannot state with certainty that AirBnBs increase rent prices
-in the area - they may just gravitate towards more expensive parts of the city.
+rents around the city, we cannot state with certainty that Airbnbs increase rent prices
+in the area. However, they may gravitate towards more expensive parts of the city.
 
 # Regression of the influence of Bezirk reputation
 <h5 class="author">by Simon Schäfer</h5>
@@ -1413,7 +1412,7 @@ This raises the question of what impact the sentiment of a title has on the pric
 
 ### Impact of title sentiments on price
 
-Since we have some outliers in the price data, we will examine the price either within a 95% confidence interval or the log price. The 95% confidence interval is a range within which we expect the true price to lie 95% of the time, giving us a more reliable estimate by reducing the impact of extreme values. To use the 95% confidence interval, we assume that the data is independently and identically distributed (iid) and approximately normally distributed. The following figures show the price of Airbnbs across different sentiment categories.
+Since we have some outliers in the price data, we will examine the price either within a interval without 2.5% of outliers in both directions or the log price. This interval is a range within which we expect the true price to lie 95% of the time, giving us a more reliable estimate by reducing the impact of extreme values. To use the 95% confidence interval, we assume that the data is independently and identically distributed (iid) and approximately normally distributed. The following figures show the price of Airbnbs across different sentiment categories.
 
 ```{r violinPlotLogTitles, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Log(Prices) of title sentiments", fig.align='center', fig.width=5.5, fig.height=4}
 ggplot(df_listings_cleaned, aes(x = sentiment_for_name, y = log_price, fill = sentiment_for_name)) +
@@ -1427,7 +1426,7 @@ ggplot(df_listings_cleaned, aes(x = sentiment_for_name, y = log_price, fill = se
 
 When comparing the sentiments with the log prices, we can see that the prices of Airbnbs with negative sentiments are almost identical to those with neutral sentiments. Most reviews for both categories fall within a price between *4.3* and *4.9*. For positive sentiments, we observe a slightly different pattern. The number of high priced Airbnbs decreases earlier than in the negative and neutral categories, although the decline is less steep. This and the boxplot indicate that there are more Airbnbs with positive titles at higher prices.
 
-```{r violinPlotCITitles, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Prices (95% CI) of title sentiments", fig.align='center', fig.width=10, fig.height=4}
+```{r violinPlotCITitles, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Prices (95% interval) of title sentiments", fig.align='center', fig.width=10, fig.height=4}
 mean_price <- mean(df_listings_cleaned$price)
 # mean_price
 sd_price <- sd(df_listings_cleaned$price)
@@ -1918,7 +1917,8 @@ plot_eng <- ggplot() +
 grid.arrange(plot_ger, plot_eng, ncol=2)
 ```
 
-This reveals that districts surrounding Berlin-Mitte are favored by both English and German visitors, with Kreuzberg and Pankow also ranking high in popularity. Notably, German visitors are more often in districts adjacent to Berlin-Mitte than the English visitors, such as Charlottenburg-Wilmersdorf and Tempelhof-Schöneberg. Airbnbs in outer districts like Marzahn-Hellersdorf and Spandau are less frequently visited by both English and German visitors. Overall, English reviewers show a strong preference for staying in or near Berlin-Mitte, while German reviewers exhibit a broader range of preferences, including more frequent stays in outer districts.
+This reveals that districts surrounding Berlin-Mitte are favored by both English and German visitors, with Kreuzberg and Pankow also ranking high in popularity. Notably, German visitors are more often in districts adjacent to Berlin-Mitte than the English visitors, such as Charlottenburg-Wilmersdorf and Tempelhof-Schöneberg. Airbnbs in outer districts like Marzahn-Hellersdorf and Spandau are less frequently visited by both English and German visitors. Overall, English reviewers show a strong preference for staying in or near Berlin-Mitte, while German reviewers exhibit a broader range of preferences, including more frequent stays in outer districts.  
+Our hypothesis is that Germans often come to Berlin to visit friends and family, while English speaking visitors are more likely to be tourists.
 
 #### Comparing the English and German review sentiments
 
@@ -1947,9 +1947,9 @@ We observed that German reviews are predominantly positive, while English review
 
 # Conclusion
 
-In conclusion, our analysis of Airbnb reviews and titles in English and German reveals that while positive sentiment can marginally increase listing prices, its impact is relatively minor compared to other factors such as images and amenities. Reviews tend to be mostly positive or neutral, with negative reviews often linked to higher priced listings, which is potentially due to higher expectations or selection bias. Sentiment also varies across districts, with central areas showing more negative reviews. Additionally, German reviews show more extreme sentiments, both positive and negative, compared to the generally neutral tone of English reviews. These findings underscore the influence of sentiment in Airbnb reviews and titles.
+In conclusion, our analysis of Airbnb reviews and titles in English and German reveals that positive sentiment marginally increase listing prices, its impact is relatively minor compared to other factors such as images and amenities. Reviews tend to be mostly positive or neutral, with negative reviews often linked to higher priced listings, which is potentially due to higher expectations or selection bias. Sentiment also varies across districts, with central areas showing more negative reviews. Additionally, German reviews show more extreme sentiments, both positive and negative, compared to the generally neutral tone of English reviews. These findings underscore the influence of sentiment in Airbnb reviews and titles.
 
-From the regression we found that the ranking in median prices for Airbnbs change if the characteristics, amenities and type as well as the quality of its neighborhood of an Airbnb is taken account for in a model. It is not easy to represent the certainty in predictions in every visualization. Sometimes it can be more appropriate to have multiple visualizations that focus on different aspects side by side. None of the modeled causal effects alone leads to distinguishable distributions for price predictions but for the mean prices they do. Adding up multiple effects leads to noticeable shift. Figure \@ref(fig:multiple-contrasts) shows the contrast plot for two hypothetical Airbnbs that differ in half of their price influencing characteristics and amenities. Here the model is pretty sure about the outcome.
+From the regression analysis, we found that the ranking in median prices for Airbnbs changes when the characteristics, amenities and type as well as the quality of its neighborhood of an Airbnb is taken account for in a model. Representing the certainty of predictions in every visualization can be challenging. Sometimes, it is more appropriate to have multiple visualizations that focus on different aspects side by side. None of the modeled causal effects alone leads to distinguishable distributions for price predictions but for the mean prices they do. Adding up multiple effects leads to noticeable shift. Figure \@ref(fig:multiple-contrasts) shows the contrast plot for two hypothetical Airbnbs that differ in half of their price influencing characteristics and amenities. In this case, the model is quite confident about the outcome.
 
 ```{r multiple-contrasts, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Comparing predictions for actual prices for Airbnbs that differ in half of the price influencing parameters.", fig.align='center', fig.dim = c(4, 3)}
 max_diff <- readRDS("saved_objects/full_model_verbose_post_summary.rds") %>% 

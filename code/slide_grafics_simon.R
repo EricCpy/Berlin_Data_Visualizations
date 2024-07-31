@@ -508,3 +508,101 @@ gg_halfeye_rank <- ggpubr::ggarrange(
   nrow = 1, widths = c(1, 0.5, 1))
 
 ggsave(plot = gg_halfeye_rank, units = "px", filename = "images_presentation/halfexe_rank.png", width = 2300, height = 1700, dpi = 300)
+
+#### half eye rank parameter ####
+
+df_temp2 <- full_model_post %>%
+  pivot_wider(names_from = "wohnlage", values_from = "delta", names_prefix = "wol_") %>% 
+  rowwise() %>% 
+  mutate(
+    price_wol_1 = exp(reputation+bE*(wol_1)+bPT),
+    price_wol_2 = exp(reputation+bE*(wol_1+wol_2)+bPT),
+    price_wol_3 = exp(reputation+bE*(wol_1+wol_2+wol_3)+bPT)
+  ) %>% pivot_longer(cols = starts_with("price_"), values_to = "price", names_prefix = "price_wol_", names_to = "wohnlage") %>% 
+  filter(property_type == 1, wohnlage != 3) %>% 
+  mutate(bezirk = bezirk_levels[bezirk], property_type = property_type_levels[property_type]) %>% 
+  select(bezirk, price) %>% mutate(type = "full model") %>% 
+  group_by(bezirk) %>% 
+  mutate(median_price = median(price)) %>% 
+  ungroup() %>% mutate(bezirk = fct_reorder(bezirk, median_price))
+
+gg1 <- df_temp2 %>% 
+  ggplot(aes(y = bezirk, x = price, fill = bezirk)) +
+  stat_halfeye() +
+  # stat_halfeye(data = df_airbnb %>% rename(bezirk = neighbourhood_group_cleansed) %>% mutate(type = "raw data"), aes(y = bezirk, x = price, fill = bezirk)) +
+  # coord_cartesian(xlim = c(0, 200)) +
+  scale_fill_manual(
+    values = bezirk_colors
+  ) +
+  facet_wrap(~type) +
+  theme(
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title.position = "top",
+    panel.grid = element_blank(),
+    panel.border = element_blank(),
+    plot.margin = unit(c(0, 0, 0, 0), "null"),
+    panel.margin = unit(c(0, 0, 0, 0), "null")
+  ) +
+  ylab(NULL) +
+  scale_y_discrete(position = "right")
+
+gg2 <- df_airbnb %>% 
+  group_by(neighbourhood_group_cleansed) %>% mutate(median_price = median(price)) %>% 
+  ungroup() %>% 
+  mutate(bezirk = fct_reorder(neighbourhood_group_cleansed, median_price)) %>% 
+  mutate(type = "raw data") %>% 
+  ggplot(aes(y = bezirk, x = price, fill = bezirk)) +
+  # stat_halfeye(data = df_temp2 %>% ungroup() %>% mutate(bezirk = fct_reorder(bezirk, median_price)), aes(y = bezirk, x = price, fill = bezirk)) +
+  stat_halfeye() +
+  coord_cartesian(xlim = c(0, 200)) +
+  scale_fill_manual(
+    values = bezirk_colors
+  ) +
+  facet_wrap(~type) +
+  theme(
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title.position = "top",
+    panel.grid = element_blank(),
+    panel.border = element_blank(),
+    plot.margin = unit(c(0, 0, 0, 0), "null"),
+    panel.margin = unit(c(0, 0, 0, 0), "null")
+  ) +
+  ylab(NULL)
+
+gg3 <- df_airbnb %>% 
+  group_by(neighbourhood_group_cleansed) %>% mutate(median_price = median(price)) %>% 
+  ungroup() %>% 
+  mutate(bezirk = fct_reorder(neighbourhood_group_cleansed, median_price)) %>% 
+  pull(bezirk) %>% levels() %>% data.frame(bezirk = ., rank = 1:12) %>% 
+  mutate(type = "raw data") %>% bind_rows(
+    df_temp2 %>% ungroup() %>% mutate(bezirk = fct_reorder(bezirk, median_price)) %>% 
+      pull(bezirk) %>% levels() %>% data.frame(bezirk = ., rank = 1:12) %>% 
+      mutate(type = "full model")
+  ) %>% 
+  mutate(rank = ordered(rank)) %>% 
+  ungroup() %>% as_tibble() %>% 
+  ggplot(aes(color = bezirk, x = type, y = rank, group = bezirk)) +
+  geom_line(linewidth = 2,
+            alpha = 0.5) +
+  geom_point(size = 3) +
+  scale_color_manual(
+    values = bezirk_colors,
+    guide = "none"
+  ) +
+  theme_void() +
+  scale_x_discrete(limits=rev) +
+  coord_cartesian(ylim = c(-.5,13)) +
+  theme(
+    panel.grid = element_blank(),
+    panel.border = element_blank(),
+    plot.margin = unit(c(0, 0, 0, 0), "null"),
+    panel.margin = unit(c(0, 0, 0, 0), "null")
+  )
+
+# gg_halfeye_rank <- 
+ggpubr::ggarrange(
+  gg2, gg3, gg1, 
+  common.legend = TRUE, legend = "bottom", 
+  nrow = 1, widths = c(1, 0.5, 1))

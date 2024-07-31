@@ -491,12 +491,15 @@ raw <- sf::st_read(dsn = "data/lor/Planung/lor_plr.shp") %>%
 
 airbnb_sf <- sf::st_as_sf(df_listings_cleaned, coords = c("longitude", "latitude"), crs = st_crs(raw))
 
-airbnb_count_by_LOR <- raw %>%
-  st_join(airbnb_sf, join = sf::st_intersects) %>%
-  group_by(PLR_ID) %>% # Replace 'region_id' with the actual column name of your region IDs
-  summarise(n = n()) %>% 
-  st_drop_geometry() %>%
-  select(PLR_ID, n)
+# airbnb_count_by_LOR <- raw %>%
+#   st_join(airbnb_sf, join = sf::st_intersects) %>%
+#   group_by(PLR_ID) %>% # Replace 'region_id' with the actual column name of your region IDs
+#   summarise(n = n()) %>% 
+#   st_drop_geometry() %>%
+#   select(PLR_ID, n)
+# saveRDS(airbnb_count_by_LOR, "saved_objects/airbnb_count_by_LOR.rds")
+
+airbnb_count_by_LOR <- readRDS("saved_objects/airbnb_count_by_LOR.rds")
 
 bezirke_name_id <- tribble(
   ~BEZ_NAME, ~BEZ_ID,

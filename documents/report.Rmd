@@ -1142,7 +1142,7 @@ df_temp %>% left_join(
   )
 ```
 
-### Conclusion
+### Section conclusion
 
 In Figure \@ref(fig:comparing-median-prices) on can see the median prices for Airbnbs as found in the real dataset and predicted from the full model. The differences probably can be explained by the fact that the model predictions assume Airbnbs that are are equally big with equal amenities. The difference between the predicted median prices by the full model can be interpreted as caused by the effect of *Bezirks* reputation. The fact that the median price for Airbnbs in *Spandau* is the highest was somewhat surprising. My personal expectations were:
 
@@ -1948,9 +1948,39 @@ ggplot(df_percentage, aes(x = language, y = percentage, fill = sentiment)) +
 We observed that German reviews are predominantly positive, while English reviews are mostly neutral. Additionally, the sentiment distribution among German reviewers aligns more closely with our general expectations compared to the overall review sentiment overview. Germans tend to rate an Airbnb as either positive or negative, with very few neutral reviews. In contrast, English reviews are generally neutral, with very few negative reviews and occasional positive ones. It's also worth noting that the German and English reviews were analyzed using different sentiment analysis tools, which may have introduced biases towards positive or neutral sentiments. 
 
 # Conclusion
-TODO **add Simon part Conclusion**
 
 In conclusion, our analysis of Airbnb reviews and titles in English and German reveals that while positive sentiment can marginally increase listing prices, its impact is relatively minor compared to other factors such as images and amenities. Reviews tend to be mostly positive or neutral, with negative reviews often linked to higher priced listings, which is potentially due to higher expectations or selection bias. Sentiment also varies across districts, with central areas showing more negative reviews. Additionally, German reviews show more extreme sentiments, both positive and negative, compared to the generally neutral tone of English reviews. These findings underscore the influence of sentiment in Airbnb reviews and titles.
+
+From the regression we found that the ranking in median prices for Airbnbs change if the characteristics, amenities and type as well as the quality of its neighborhood of an Airbnb is taken account for in a model. It is not easy to represent the certainty in predictions in every visualization. Sometimes it can be more appropriate to have multiple visualizations that focus on different aspects side by side. None of the modeled causal effects alone leads to distinguishable distributions for price predictions but for the mean prices they do. Adding up multiple effects leads to noticeable shift. Figure \@ref(fig:multiple-contrasts) shows the contrast plot for two hypothetical Airbnbs that differ in half of their price influencing characteristics and amenities. Here the model is pretty sure about the outcome.
+
+```{r multiple-contrasts, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Comparing predictions for actual prices for Airbnbs that differ in half of the price influencing parameters.", fig.align='center', fig.dim = c(4, 3)}
+max_diff <- readRDS("saved_objects/full_model_verbose_post_summary.rds") %>% 
+  filter(!str_starts(parameter, "reputation")) %>% 
+  filter(!str_starts(parameter, "sigma")) %>% 
+  filter(!str_starts(parameter, "delta")) %>% 
+  filter(!str_starts(parameter, "bProp")) %>% 
+  pull(mean) %>% abs() %>% sum()
+
+full_model_post %>% filter(wohnlage == 1) %>% mutate(
+  price = reputation+bE*delta,
+  price_max = price+max_diff/2
+  ) %>% # pivot_longer(cols = c(price, price_max)) %>% 
+  rowwise() %>% 
+  mutate(
+    price = exp(rnorm(1, price, sigma)),
+    price_max = exp(rnorm(1, price_max, sigma)),
+    price_diff = price_max - price
+    ) %>% 
+  ungroup() %>% 
+  mutate(p_safe = str_c(round(100*mean(price_diff > 0), 1), " %")) %>% 
+  ggplot(aes(x = price_diff, fill = stat(x > 0))) +
+  stat_halfeye() +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  scale_fill_manual(values = c("gray80", "skyblue"), guide = "none") +
+  labs(x="difference of predicted price in €", y=NULL) +
+  geom_text(aes(x = 250, 0.125, label = p_safe)) +
+  coord_cartesian(xlim = c(-150, 850))
+```
 
 # References
 

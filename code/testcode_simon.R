@@ -2512,3 +2512,34 @@ ggpubr::ggarrange(
 
 # predicting price for any given Airbnb and calculate the difference to actual price
 # show difference on map with colored scatter plot
+
+#### max price difference ####
+
+max_diff <- readRDS("saved_objects/full_model_verbose_post_summary.rds") %>% 
+  filter(!str_starts(parameter, "reputation")) %>% 
+  filter(!str_starts(parameter, "sigma")) %>% 
+  filter(!str_starts(parameter, "delta")) %>% 
+  filter(!str_starts(parameter, "bProp")) %>% 
+  pull(mean) %>% abs() %>% sum()
+
+full_model_post <- readRDS("./saved_objects/full_model_post.rds")
+full_model_post %>% filter(wohnlage == 1) %>% mutate(
+  price = reputation+bE*delta,
+  price_max = price+max_diff/2
+  ) %>% # pivot_longer(cols = c(price, price_max)) %>% 
+  rowwise() %>% 
+  mutate(
+    price = exp(rnorm(1, price, sigma)),
+    price_max = exp(rnorm(1, price_max, sigma)),
+    price_diff = price_max - price
+    ) %>% 
+  ungroup() %>% 
+  mutate(p_safe = str_c(round(100*mean(price_diff > 0), 1), " %")) %>% 
+  ggplot(aes(x = price_diff, fill = stat(x > 0))) +
+  stat_halfeye() +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  scale_fill_manual(values = c("gray80", "skyblue"), guide = "none") +
+  labs(x="difference of predicted price in €", y=NULL) +
+  geom_text(aes(x = 250, 0.125, label = p_safe))
+  coord_cartesian(xlim = c(-150, 850))
+  

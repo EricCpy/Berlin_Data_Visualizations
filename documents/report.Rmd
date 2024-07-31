@@ -179,6 +179,7 @@ plot_ly() %>%
 ```
 
 # Correlation between rent prices and number of AirBnBs
+<h5 class="author">by Pavlo Kravets</h5>
 
 In the recent years, AirBnB became controversial due to it's perceived impact on
 prices and availability of long-term rentals. The idea is that short-term rentals
@@ -265,16 +266,6 @@ As we can see, there is a strong positive correlation between the number of AirB
 and the rent, but it is hardly linear. Moreover, given our previous findings regarding
 rents around the city, we cannot state with certainty that AirBnBs increase rent prices
 in the area - they may just gravitate towards more expensive parts of the city.
-
-
-## Objectives
-
-1. **Number of Airbnbs by District & Data Overview** (Florian/Eric)
-2. **Effect of Airbnb Quantity on Pricing & Data Overview** (Pavlo)
-3. **Impact of Bezirk Reputation on Pricing** (Simon)
-4. **Influence of Additional Data on Airbnb Pricing & Overview** (Simon)
-5. **Analysis of Pricing in Relation to Amenities and Attributes** (Simon)
-6. **Sentiment Analysis of Reviews and Titles; Correlation with price and neighborhood** (Eric)
 
 # Regression of the influence of Bezirk reputation
 <h5 class="author">by Simon Schäfer</h5>

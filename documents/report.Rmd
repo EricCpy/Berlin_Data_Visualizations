@@ -199,7 +199,7 @@ plot_ly() %>%
 ```
 
 # Regression of the influence of Bezirk reputation
-<h5 class="author">Simon Schäfer</h5>
+<h5 class="author">by Simon Schäfer</h5>
 
 ```{r, include=FALSE, cache=!full_refit}
 q25_mitte <- df_airbnb %>% filter(neighbourhood_group_cleansed == "Mitte") %>% 
@@ -1074,7 +1074,7 @@ In Figure \@ref(fig:comparing-median-prices) on can see the median prices for Ai
 1. Lichtenberg
 1. Marzahn-Hellersdorf, Reinickendorf
 
-Regarding the prediction for *Spandau* one should have a second look at Table \@ref(tab:airbnb-price-by-bezirk-table) and Figure \@ref(fig:base-model-rep-wol-parameter). Since the dataset has very few information about Airbnbs in *Spandau* (as for *Lichtenber* and *Marzahn-Hellersdorf*) it is pretty uncertain about the corresponding parameter. This uncertainty is not reflected in Figure \@ref(fig:comparing-median-prices). In fact this is a crucial point Bayesian statisticians emphasise often: **The result is the whole distribution. At least the point estimator and the width of an credibility interval.** Just presenting a point estimate can be misleading in decisions. But simple point estimates seem to be the kind of answers people want to get. But life is not simple - it is complex and full of uncertainty.
+Regarding the prediction for *Spandau* one should have a second look at Table \@ref(tab:airbnb-price-by-bezirk-table) and Figure \@ref(fig:base-model-rep-wol-parameter). Since the dataset has very few information about Airbnbs in *Spandau* (as for *Lichtenber* and *Marzahn-Hellersdorf*) it is pretty uncertain about the corresponding parameter.^[Using a hierarchical model could help with prevent possible overfitting for the districts with less information by learning a common distribution shape for all districts. Unfortunately I had not enough time to review this topic in depth yet.] This uncertainty is not reflected in Figure \@ref(fig:comparing-median-prices). In fact this is a crucial point Bayesian statisticians emphasise often: **The result is the whole distribution. At least the point estimator and the width of an credibility interval.** Just presenting a point estimate can be misleading in decisions. But simple point estimates seem to be the kind of answers people want to get. But life is not simple - it is complex and full of uncertainty.
 
 ```{r comparing-median-prices, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Comparing the shift of median prices for Airbnbs found in the raw data with predictions from the full model.", fig.align='center', fig.dim = c(6, 6)}
 ggtheme <- theme_get()
@@ -1114,7 +1114,7 @@ CGPfunctions::newggslopegraph(
   )
 ```
 
-To be fair: It seems not easy to communicate the uncertainty at the same time as displaying a shift in rankings. In Figure \@ref(ref:comparing-median-prices-uncertainty-circles) the uncertainty is reflected by the diameter of the added circles. For the raw data the number of data points per *Bezirk* has been normalized and multiplied by `-1`. Thus a small diameter represent a high count of data for a given *Bezirk*. For the predictions of the full model the standard deviations of the predicted prices grouped by *Bezirk* were scaled. Thus a big diameter represents a wide distribution for the predictions. The diameter size must not be compared across the two columns. They are just representive among each column.
+To be fair: It seems not easy to communicate the uncertainty at the same time as displaying a shift in rankings. In Figure \@ref(fig:comparing-median-prices-uncertainty-circles) the uncertainty is reflected by the diameter of the added circles. For the raw data the number of data points per *Bezirk* has been normalized and multiplied by `-1`. Thus a small diameter represent a high count of data for a given *Bezirk*. For the predictions of the full model the standard deviations of the predicted prices grouped by *Bezirk* were scaled. Thus a big diameter represents a wide distribution for the predictions. The diameter size must not be compared across the two columns. They are just representive among each column.
 
 This approach is not as clear as on might wish for because the size of circles is hard to distinguish and the circles are overlapping. Anyway, this approach seems to be better than comparing half-eye distributions or boxplots because one can more easily identify the shift of the median prices. But combining two half-eye plots and an line plot also make the reordering of the ranking clear (see \@ref(fig:comparing-median-prices-half-eye)). This might be more suitable when the shape of the predicted distributions become more variable.
 
@@ -1262,54 +1262,13 @@ For *Wohnlage* the estimated parameter only can be interpreted as the direct eff
 
 ```{r prepare-interactive-data, include=FALSE, cache=!full_refit}
 ndraw <- 30
-
-full_model_verbose_post_summary <- readRDS("./saved_objects/full_model_verbose_post_summary.rds") %>% 
-  select(-rhat, -ess_bulk) %>% 
-  filter(!str_starts(parameter, "delta")) %>% 
-  filter(!str_starts(parameter, "reputation")) %>% 
-  filter(!str_starts(parameter, "bPropType")) %>% 
-  filter(parameter != "sigma") %>% 
-  mutate("total effect" = parameter %in% direct_effect_only)
-
-full_model_verbose_post_long <- full_model_verbose_post %>% 
-  pivot_wider(names_from = "wohnlage", values_from = "delta", names_prefix = "wol_") %>% 
-  mutate(
-    log_price_wol_1 = reputation+bE*(wol_1)+bPropType,
-    log_price_wol_2 = reputation+bE*(wol_1+wol_2)+bPropType,
-    log_price_wol_3 = reputation+bE*(wol_1+wol_2+wol_3)+bPropType
-  ) %>% pivot_longer(cols = starts_with("log_price_"), values_to = "log_price", names_prefix = "log_price_wol_", names_to = "wohnlage") %>% 
-  mutate(bezirk = bezirk_levels[bezirk], property_type = property_type_levels[property_type]) %>% 
-  pivot_longer(full_model_verbose_post_summary$parameter) %>% 
-  mutate(price_diff = exp(log_price+value)-exp(log_price)) %>%
-  group_by(name) %>% 
-  mutate(perc = str_c(round(100*mean(price_diff>0), 2), " %")) %>% 
-  sample_n(ndraw) %>% 
-  ungroup() %>% 
-  select(name, price_diff, perc) %>% mutate(name = factor(name), perc = factor(perc))
-
-full_model_verbose_post_long_pred <- full_model_verbose_post %>% 
-  pivot_wider(names_from = "wohnlage", values_from = "delta", names_prefix = "wol_") %>% 
-  mutate(
-    log_price_wol_1 = reputation+bE*(wol_1)+bPropType,
-    log_price_wol_2 = reputation+bE*(wol_1+wol_2)+bPropType,
-    log_price_wol_3 = reputation+bE*(wol_1+wol_2+wol_3)+bPropType
-  ) %>% pivot_longer(cols = starts_with("log_price_"), values_to = "log_price", names_prefix = "log_price_wol_", names_to = "wohnlage") %>% 
-  mutate(bezirk = bezirk_levels[bezirk], property_type = property_type_levels[property_type]) %>% 
-  pivot_longer(full_model_verbose_post_summary$parameter) %>% 
-  rowwise() %>% 
-  mutate(price_diff = exp(rnorm(1, log_price+value, sigma))-exp(rnorm(1, log_price, sigma))) %>%
-  group_by(name) %>% 
-  mutate(perc = str_c(round(100*mean(price_diff>0), 2), " %")) %>% 
-  sample_n(ndraw) %>% 
-  ungroup() %>% 
-  select(name, price_diff, perc) %>% mutate(name = factor(name), perc = factor(perc))
 ```
 
-The mean of the parameter estimation as well as indicators of their distribution width can be found in \@ref(tab:full-model-parameter-summary). This table also indicates if the parameter can be interpreted as total and direct causal effect or only as direct causal effect. The table is linked with Figure \@ref(fig:full-model-parameter-contrasts-interactive) and Figure \@ref(fig:full-model-pred-contrasts-interactive) which show the contrast plots for the selected covariable. Figure \@ref(fig:full-model-parameter-contrasts-interactive) shows the effect on the mean price while Figure \@ref(fig:full-model-pred-contrasts-interactive) shows the effect for the predicted actual prices.^[It might be necassary to zoom a little bit out to see all three depending on the size and resolution of the screen. Since the interactive plotly apps produce a lot of data that has to be stored and loaded in the HTML document the densities are generated by `r ndraw` data points per parameter only. The percentages are computed on all data points and thus more precise.]
+The mean of the parameter estimation as well as indicators of their distribution width can be found in \@ref(tab:full-model-parameter-summary). This table also indicates if the parameter can be interpreted as total and direct causal effect or only as direct causal effect. The table is linked with Figure \@ref(fig:full-model-contrasts-interactive) which shows the contrast plots for the selected covariable. On the left it shows the effect on the mean price; on the right it shows the effect for the predicted actual prices.^[It might be necassary to zoom a little bit out to see all three depending on the size and resolution of the screen. Since the interactive plotly apps produce a lot of data that has to be stored and loaded in the HTML document the densities are generated by `r ndraw` data points per parameter only. Later we used a ShinyApp where the densities are based on 1000 data rows. The percentages are computed on all data points and thus more precise.]
 
 The model is often pretty sure that the mean price for an Airbnb with a selected amenity (or with an increased value by one standard deviation for a numeric predictor) is higher (or lower). Nevertheless, the model is much less certein that prices actually found in reality will be higher (or lower) for most Airbnbs. E.g. the model is 100 % certain that an Airbnb with balcony is in general (mean) more expensive than one without. But it predicts only a 55 % probability that for a given pair of Airbnbs the one with a a balcony is more expensive than one without. For an Airbnb where a number of accommodates is one standard deviation higher than for the population mean the model is 100 % certain that the mean price is higher. For an actual pair it predicts 64 % probability that the Airbnb with space for more accommodates ist more expensive.
 
-```{r interactive-contrasts, echo=FALSE, message=FALSE, warning=FALSE, cache=FALSE, results="asis"}
+```{r full-model-contrasts-interactive, echo=FALSE, message=FALSE, warning=FALSE, cache=FALSE, fig.cap="Contrasts of parameter and posterior prediction estimations. The percentage indicates the probability to find an Airbnb with the chosen characteristic that is more expensive than an Airbnb without the characteristic.", fig.align='center', fig.dim = c(8, 8), results="asis"}
 cat(
   "<table>",
   paste0("<caption>",
@@ -1320,59 +1279,12 @@ cat(
   sep ="\n"
   )
 
-# set up a group of SharedData objects
-shared_demo <- SharedData$new(
-  full_model_verbose_post_summary,
-  key = ~parameter, group = "shared_obj"
-  )
-shared_trt <- SharedData$new(
-  full_model_verbose_post_long %>% rename(parameter = name),
-  key = ~parameter, group = "shared_obj")
-shared_trt2 <- SharedData$new(
-  full_model_verbose_post_long_pred %>% rename(parameter = name),
-  key = ~parameter, group = "shared_obj")
-
-datatable(
-  shared_demo,
-  selection = 'single'
-  ) %>%
-  formatSignif(
-    columns = 2:5,
-    digits = 2
-  )
-```
-
-```{r full-model-parameter-contrasts-interactive, echo=FALSE, message=FALSE, warning=FALSE, cache=FALSE, fig.cap="Contrasts of parameter estimations. The percentage indicates the probability to find an Airbnb with the chosen characteristic that is more expensive than an Airbnb without the characteristic.", fig.align='center', fig.dim = c(8, 3)}
-gg_param <- shared_trt %>%
-  ggplot(aes(x = price_diff, group = parameter)) +
-  geom_density(fill = "skyblue") +
-  geom_text(aes(x = 20, 0.2, label = perc, group = parameter), hjust=0.5, vjust=0.5) +
-  geom_vline(xintercept = 0, linetype = "dashed") +
-  labs(x="difference of mean price in €", y=NULL) +
-  theme(
-    legend.position = "bottom"
-  ) +
-  coord_cartesian(xlim = c(-25, 25))
-
-ggplotly(gg_param)
-```
-
-```{r full-model-pred-contrasts-interactive, echo=FALSE, message=FALSE, warning=FALSE, cache=FALSE, fig.cap="Contrasts of posterior predicted prices. The percentage indicates the probability to find an Airbnb with the chosen characteristic that is more expensive than an Airbnb without the characteristic.", fig.align='center', fig.dim = c(8, 3)}
-gg_pred <- shared_trt2 %>%
-  ggplot(aes(x = price_diff, group = parameter)) +
-  geom_density(fill = "skyblue") +
-  geom_text(aes(x = 200, 0.005, label = perc, group = parameter), hjust=0.5, vjust=0.5) +
-  geom_vline(xintercept = 0, linetype = "dashed") +
-  labs(x="difference of mean price in €", y=NULL) +
-  theme(
-    legend.position = "bottom"
-  ) +
-  coord_cartesian(xlim = c(-250, 250))
-
-ggplotly(gg_pred)
+knitr::include_app("https://famondir.shinyapps.io/contrasts/",
+  height = "850px")
 ```
 
 # Sentiment analysis
+<h5 class="author">by Eric Jonas</h5>
 
 In this section, we analyze the sentiments of reviews and titles using existing sentiment analysis tools. Most tools in this field are designed to work with only one language and provide inaccurate analyses for texts in other languages. Therefore, our first step was to use a language detection tool to identify the languages of all texts. Upon determining the languages, we found that our reviews mostly consist of English and German reviews.
 

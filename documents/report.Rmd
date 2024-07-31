@@ -130,37 +130,9 @@ ggplot(df_listings_cleaned, aes(x = room_type)) +
 
 Overall, it's clear that there are many more possibilities for visualization, but we focused on specific objectives to keep the project's scope manageable.
 
-## Objectives
+## Interactive Map
 
-1. **Number of Airbnbs by District & Data Overview** (Florian/Eric)
-2. **Effect of Airbnb Quantity on Pricing & Data Overview** (Pavlo)
-3. **Impact of Bezirk Reputation on Pricing** (Simon)
-4. **Influence of Additional Data on Airbnb Pricing & Overview** (Simon)
-5. **Analysis of Pricing in Relation to Amenities and Attributes** (Simon)
-6. **Sentiment Analysis of Reviews and Titles; Correlation with price and neighborhood** (Eric)
-
-## Airbnb map **TODO remove or change?**
-
-```{r airbnb-map-ggplot, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Map with ggplot", fig.align='center'}
-geo_elect_units %>% 
-  ggplot() + 
-  geom_sf(
-    mapping = aes(geometry = geometry, fill = BEZNAME)
-    ) +
-  geom_sf(
-    data = airbnb_coordinates,
-    aes(geometry = geometry),
-    size = 1,
-    color = "black",
-    alpha = .3) +
-  theme_bw() +
-  theme(
-    legend.position = "bottom"
-  )+
-  scale_fill_manual(
-    values = bezirk_colors
-  )
-```
+We also created an interactive map of our data, including train lines, which is useful for exploring specific Airbnb listings.
 
 ```{r airbnb-map-plotly, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.cap="Interactive map with plotly with OPNV info", fig.align='center', fig.dim = c(8, 8)}
 plot_ly() %>% 
@@ -197,6 +169,15 @@ plot_ly() %>%
     )
   )
 ```
+
+## Objectives
+
+1. **Number of Airbnbs by District & Data Overview** (Florian/Eric)
+2. **Effect of Airbnb Quantity on Pricing & Data Overview** (Pavlo)
+3. **Impact of Bezirk Reputation on Pricing** (Simon)
+4. **Influence of Additional Data on Airbnb Pricing & Overview** (Simon)
+5. **Analysis of Pricing in Relation to Amenities and Attributes** (Simon)
+6. **Sentiment Analysis of Reviews and Titles; Correlation with price and neighborhood** (Eric)
 
 # Regression of the influence of Bezirk reputation
 <h5 class="author">Simon Schäfer</h5>
